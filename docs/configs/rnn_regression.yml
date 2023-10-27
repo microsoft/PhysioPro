@@ -1,0 +1,30 @@
+data:
+  type: ts
+  prefix: data/Monash_UEA_UCR_Regression_Archive
+  name: BeijingPM25Quality
+  task: regression
+network:
+  type: TSRNN
+  cell_type: GRU
+  emb_dim: 1
+  emb_type: learn
+  hidden_size: 64
+  dropout: 0.
+model:
+  type: ts
+  task: regression
+  optimizer: Adam
+  lr: 0.001
+  weight_decay: 0.0
+  loss_fn: mse
+  metrics: [r2, mse, corr, rrse]
+  observe: r2
+  max_epochs: 350
+  lower_is_better: False
+  early_stop: 5
+  batch_size: 256
+  aggregate: True
+runtime:
+  seed: 42
+  use_cuda: true
+  output_dir: outputs/Monash_UEA_UCR_Regression_Archive/BeijingPM25Quality

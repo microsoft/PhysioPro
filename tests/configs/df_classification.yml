@@ -1,0 +1,33 @@
+data:
+  type: df
+  task: classification
+  data_folder: data/fake_df_data/classification
+  meta_path: data/fake_df_data/classification/meta.pkl
+  num_variables: 3
+  freq: 7
+  max_seq_len: 5
+  num_classes: 2
+network:
+  type: TSRNN
+  cell_type: GRU
+  emb_dim: 1
+  emb_type: static
+  hidden_size: 8
+  dropout: 0.
+model:
+  type: ts
+  task: classification
+  optimizer: Adam
+  lr: 0.001
+  weight_decay: 0.0
+  loss_fn: cross_entropy
+  metrics: [accuracy]
+  observe: accuracy
+  lower_is_better: False
+  max_epochs: 2
+  early_stop: 2
+  batch_size: 256
+  aggregate: True
+runtime:
+  seed: 42
+  use_cuda: true

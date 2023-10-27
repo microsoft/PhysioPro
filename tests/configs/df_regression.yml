@@ -1,0 +1,32 @@
+data:
+  type: df
+  task: regression
+  data_folder: data/fake_df_data/regression
+  meta_path: data/fake_df_data/regression/meta.pkl
+  num_variables: 3
+  freq: 7
+  max_seq_len: 5
+network:
+  type: TSRNN
+  cell_type: GRU
+  emb_dim: 1
+  emb_type: static
+  hidden_size: 8
+  dropout: 0.
+model:
+  type: ts
+  task: regression
+  optimizer: Adam
+  lr: 0.001
+  weight_decay: 0.0
+  loss_fn: mse
+  metrics: [r2]
+  observe: r2
+  lower_is_better: True
+  max_epochs: 2
+  early_stop: 2
+  batch_size: 256
+  aggregate: True
+runtime:
+  seed: 42
+  use_cuda: true

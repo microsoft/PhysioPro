@@ -1,0 +1,30 @@
+data:
+  type: ts
+  prefix: data/Multivariate_ts
+  name: Heartbeat
+  task: classification
+network:
+  type: TSRNN
+  cell_type: GRU
+  emb_dim: 1
+  emb_type: static
+  hidden_size: 64
+  dropout: 0.
+model:
+  type: ts
+  task: multiclassification
+  optimizer: Adam
+  lr: 0.001
+  weight_decay: 0.0
+  loss_fn: cross_entropy
+  metrics: [accuracy]
+  observe: accuracy
+  lower_is_better: False
+  max_epochs: 5
+  early_stop: 2
+  batch_size: 256
+  aggregate: True
+runtime:
+  seed: 42
+  use_cuda: true
+  output_dir: outputs/Multivariate_ts/Heartbeat
