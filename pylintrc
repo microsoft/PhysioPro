@@ -33,3 +33,5 @@ disable =
     unidiomatic-typecheck,
     unknown-option-value,
     dangerous-default-value,
+    import-error,
+    deprecated-module,
