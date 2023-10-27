@@ -18,8 +18,8 @@ from utilsd import use_cuda
 from utilsd.config import Registry
 from utilsd.earlystop import EarlyStop, EarlyStopStatus
 
-from ..common.function import get_loss_fn, get_metric_fn, printt
-from ..common.utils import AverageMeter, GlobalTracker, to_torch
+from ..metrics import get_loss_fn, get_metric_fn
+from ..common.utils import AverageMeter, GlobalTracker, to_torch, printt
 
 
 class MODELS(metaclass=Registry, name="model"):
