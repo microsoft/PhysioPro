@@ -26,3 +26,15 @@ jobs:
     - name: df test
       run: |
         pytest tests/df_data_test.py
+    - name: Download ts data
+      run: |
+        mkdir data
+        wget http://www.timeseriesclassification.com/aeon-toolkit/Archives/Multivariate2018_ts.zip -P data
+        unzip data/Multivariate2018_ts.zip -d data/
+        rm data/Multivariate2018_ts.zip
+        mkdir -p data/Monash_UEA_UCR_Regression_Archive/BeijingPM25Quality
+        wget https://zenodo.org/record/3902671/files/BeijingPM25Quality_TEST.ts?download=1 -O data/Monash_UEA_UCR_Regression_Archive/BeijingPM25Quality/BeijingPM25Quality_TEST.ts
+        wget https://zenodo.org/record/3902671/files/BeijingPM25Quality_TRAIN.ts?download=1 -O data/Monash_UEA_UCR_Regression_Archive/BeijingPM25Quality/BeijingPM25Quality_TRAIN.ts
+    - name: ts test
+      run: |
+        pytest tests/ts_data_test.py
