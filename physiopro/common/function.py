@@ -55,7 +55,7 @@ def z_score_mask(ser, mask):
 # loss and metric functions
 
 
-class K(object):
+class K():
     """backend kernel"""
 
     @staticmethod
