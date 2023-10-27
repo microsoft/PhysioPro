@@ -19,7 +19,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Installation
       run: |
-        pip install .[full]
+        pip install .[dev]
     - name: Genereate fake df data
       run: |
         python tests/generate_fake_df_data.py
