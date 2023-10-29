@@ -53,6 +53,7 @@ class MovingAverage():
 
 
 class AverageMeter():
+    """Computes and stores the average and current value"""
     def __init__(self):
         self.reset()
 
@@ -66,7 +67,7 @@ class AverageMeter():
         self.val = val
         self.sum += val * n
         self.count += n
-        self.avg = 1.0 * self.sum / self.count
+        self.avg = self.sum / self.count
 
     def performance(self, care="avg"):
         return getattr(self, care)
@@ -99,16 +100,6 @@ class GlobalMeter():
             self.preds = [np.expand_dims(preds, 0) if len(preds.shape) == 0 else preds for preds in self.preds]
             self.ys = np.concatenate(self.ys, axis=0)
             self.preds = np.concatenate(self.preds, axis=0)
-        else:
-            return
-
-    def get_ys(self):
-        # deprecated
-        return np.concatenate(self.ys, axis=0)
-
-    def get_preds(self):
-        # deprecated
-        return np.concatenate(self.preds, axis=0)
 
     def performance(self):
         return self.f(self.ys, self.preds)
