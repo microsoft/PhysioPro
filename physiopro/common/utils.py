@@ -1,35 +1,18 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import copy
-import datetime
-import time
-from collections import namedtuple
 from numbers import Number
 from typing import Any, Iterable, Optional, Union
 
 import numpy as np
 import torch
 
-# Environment Classes
-Obs = namedtuple(
-    "Obs",
-    (
-        "date",
-        "t",
-        "target",
-        "position",
-        "sell",
-        "p",  # vwap price at t-1
-        "v",  # market volume at t-1
-    ),
-)
 
-
-def pprint(*args):
-    time = "[" + str(datetime.datetime.utcnow() + datetime.timedelta(hours=8))[:19] + "] -"
-    print(time, *args, flush=True)
-
+def printt(s=None):
+    if s is None:
+        print()
+    else:
+        print(str(s), end="\t")
 
 def to_torch(
         x: Any,
@@ -54,22 +37,7 @@ def to_torch(
         return (to_torch(i, dtype, device) for i in x)
     raise TypeError(f"object {x} cannot be converted to torch.")
 
-
-class Timer():
-    def __init__(self, message=None):
-        self.message = message
-
-    def __enter__(self):
-        if self.message is not None:
-            print(self.message, end="\t")
-        self.start_time = time.time()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        print(time.time() - self.start_time)
-
-
 # Evaluation Metrics
-
 
 class MovingAverage():
     def __init__(self, decay, init_val=0, shape=None):
@@ -85,6 +53,7 @@ class MovingAverage():
 
 
 class AverageMeter():
+    """Computes and stores the average and current value"""
     def __init__(self):
         self.reset()
 
@@ -98,7 +67,7 @@ class AverageMeter():
         self.val = val
         self.sum += val * n
         self.count += n
-        self.avg = 1.0 * self.sum / self.count
+        self.avg = self.sum / self.count
 
     def performance(self, care="avg"):
         return getattr(self, care)
@@ -131,16 +100,6 @@ class GlobalMeter():
             self.preds = [np.expand_dims(preds, 0) if len(preds.shape) == 0 else preds for preds in self.preds]
             self.ys = np.concatenate(self.ys, axis=0)
             self.preds = np.concatenate(self.preds, axis=0)
-        else:
-            return
-
-    def get_ys(self):
-        # deprecated
-        return np.concatenate(self.ys, axis=0)
-
-    def get_preds(self):
-        # deprecated
-        return np.concatenate(self.preds, axis=0)
 
     def performance(self):
         return self.f(self.ys, self.preds)
@@ -260,15 +219,3 @@ class GlobalTracker(GlobalMeter):
         else:
             raise NotImplementedError("TODO")
         return stat
-
-
-def __deepcopy__(self, memo={}):
-    cls = self.__class__
-    copyobj = cls.__new__(cls)
-    memo[id(self)] = copyobj
-    for attr, value in self.__dict__.items():
-        try:
-            setattr(copyobj, attr, copy.deepcopy(value, memo))
-        except Exception:
-            pass
-    return copyobj
