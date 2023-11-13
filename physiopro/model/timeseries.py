@@ -4,7 +4,6 @@
 from typing import List, Tuple, Optional, Union
 from pathlib import Path
 import numpy as np
-
 from torch import nn
 
 from .base import MODELS, BaseModel
@@ -27,6 +26,7 @@ class TS(BaseModel):
             network: Optional[nn.Module] = None,
             output_dir: Optional[Path] = None,
             checkpoint_dir: Optional[Path] = None,
+            num_workers: Optional[int] = 8,
             early_stop: Optional[int] = None,
             out_ranges: Optional[List[Union[Tuple[int, int], Tuple[int, int, int]]]] = None,
             model_path: Optional[str] = None,
@@ -74,6 +74,7 @@ class TS(BaseModel):
             model_path,
             output_dir,
             checkpoint_dir,
+            num_workers,
         )
 
     def _build_network(

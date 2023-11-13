@@ -28,7 +28,7 @@ def run_train(config):
         input_size=trainset.num_variables, max_length=trainset.max_seq_len
     )
 
-    if config.data.task == 'regression':
+    if config.data.type in ['ts', 'df'] and config.data.task == 'regression':
         out_size = 1
     else:
         out_size = trainset.num_classes

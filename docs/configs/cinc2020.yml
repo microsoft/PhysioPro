@@ -1,0 +1,37 @@
+data:
+  type: CinC2020
+  data_folder: data/CinC2020/training_data
+  meta_path: data/CinC2020/records_stratified_10_folds_v2.csv
+  feats_path:  data/CinC2020/feats/
+  featname_path: data/CinC2020/top_feats.npy
+  test_fold: 3
+network:
+  type: DeepAndWide
+  d_model: 256
+  nhead: 8
+  d_ff: 2048
+  num_layers: 8
+  dropout_rate: 0.2
+  deepfeat_sz: 64
+  nb_feats: 20
+  nb_demo: 2
+  num_class: 27
+model:
+  type: cinc2020
+  task: multiclassification
+  optimizer: Adam
+  lr: 0.0001
+  weight_decay: 0.00001
+  loss_fn: mce
+  metrics: [multilabel_auroc, multilabel_auprc]
+  observe: multilabel_auroc
+  lower_is_better: False
+  max_epochs: 100
+  early_stop: 10
+  batch_size: 64
+  aggregate: True
+  weights_file: data/CinC2020/weights.csv
+runtime:
+  seed: 42
+  use_cuda: true
+  output_dir: outputs/cinc2020
