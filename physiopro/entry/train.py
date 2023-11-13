@@ -5,7 +5,7 @@ from utilsd import get_output_dir, get_checkpoint_dir, setup_experiment
 from utilsd.experiment import print_config
 from utilsd.config import PythonConfig, RegistryConfig, RuntimeConfig, configclass
 
-from ..dataset import DATASETS
+from ..dataset import DATASETS, TSDataset, DfDataset
 from ..model import MODELS
 from ..network import NETWORKS
 
@@ -28,7 +28,7 @@ def run_train(config):
         input_size=trainset.num_variables, max_length=trainset.max_seq_len
     )
 
-    if config.data.type in ['ts', 'df'] and config.data.task == 'regression':
+    if config.data.type() in [TSDataset, DfDataset] and config.data.task == 'regression':
         out_size = 1
     else:
         out_size = trainset.num_classes
