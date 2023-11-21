@@ -7,7 +7,7 @@ import json
 import time
 from pathlib import Path
 from typing import List, Optional
-
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import torch
@@ -44,6 +44,7 @@ class BaseModel(nn.Module):
             model_path: Optional[str] = None,
             output_dir: Optional[Path] = None,
             checkpoint_dir: Optional[Path] = None,
+            num_workers: Optional[int] = 8,
         ) -> None:
         super().__init__()
         if not hasattr(self, "hyper_paras"):
@@ -63,14 +64,13 @@ class BaseModel(nn.Module):
         )
         self._init_logger(output_dir)
         self.checkpoint_dir = checkpoint_dir
+        self.num_workers = num_workers
+
         if model_path is not None:
             self.load(model_path)
         if use_cuda():
             print("Using GPU")
             self.cuda()
-
-        self.best_params = None
-        self.best_network_params = None
 
     def _build_network(self, network, *args, **kwargs) -> None:
         """Initilize the network parameters"""
@@ -123,7 +123,7 @@ class BaseModel(nn.Module):
         """The pytorch module forward function
 
         Args:
-            inputs (torch.Tensor): Tensorlized feature.
+            X (torch.Tensor): Tensorlized feature.
         """
 
     def _init_scheduler(self, loader_length):
@@ -131,6 +131,9 @@ class BaseModel(nn.Module):
         self.scheduler = None
 
     def _post_batch(self, iterations: int, epoch, train_loss, train_global_tracker, validset, testset):
+        pass
+
+    def _post_epoch_valid_best(self):
         pass
 
     def _load_weight(self, params):
@@ -167,7 +170,7 @@ class BaseModel(nn.Module):
             batch_size=self.batch_size,
             shuffle=True,
             pin_memory=True,
-            num_workers=8,
+            num_workers=self.num_workers,
         )
 
         self._init_scheduler(len(loader))
@@ -182,7 +185,7 @@ class BaseModel(nn.Module):
             train_loss = AverageMeter()
             train_global_tracker = GlobalTracker(self.metrics, self.metric_fn)
             start_time = time.time()
-            for _, (data, label) in enumerate(loader):
+            for _, (data, label) in tqdm(enumerate(loader), total=len(loader)):
                 if use_cuda():
                     data, label = to_torch(data, device="cuda"), to_torch(label, device="cuda")
                 pred = self(data)
@@ -233,6 +236,7 @@ class BaseModel(nn.Module):
                     best_res = {"train": metric_res, "valid": eval_res}
                     torch.save(self.best_params, f"{self.checkpoint_dir}/model_best.pkl")
                     torch.save(self.best_network_params, f"{self.checkpoint_dir}/network_best.pkl")
+                    self._post_epoch_valid_best()
                 elif es == EarlyStopStatus.STOP and self._early_stop():
                     break
             else:

@@ -32,12 +32,13 @@ def mce(y_true, y_pred):
     return F.binary_cross_entropy_with_logits(y_pred, y_true)
 
 
-def m_auroc(labels, outputs):
-    num_classes = len(np.unique(labels))
-    num_recordings = len(labels)
-
-    # Convert to one-hot encoding
-    labels = np.eye(num_classes)[labels]
+def m_auroc(labels, outputs, label_one_hot_encoded=False):
+    if not label_one_hot_encoded:
+        num_classes = len(np.unique(labels))
+        num_recordings = len(labels)
+        labels = np.eye(num_classes)[labels]
+    else:
+        num_recordings, num_classes = labels.shape
 
     # Compute and summarize the confusion matrices for each class across at distinct output values.
     auroc = np.zeros(num_classes)
@@ -108,12 +109,14 @@ def m_auroc(labels, outputs):
     return macro_auroc
 
 
-def m_auprc(labels, outputs):
-    num_classes = len(np.unique(labels))
-    num_recordings = len(labels)
-
+def m_auprc(labels, outputs, label_one_hot_encoded=False):
     # Convert to one-hot encoding
-    labels = np.eye(num_classes)[labels]
+    if not label_one_hot_encoded:
+        num_classes = len(np.unique(labels))
+        num_recordings = len(labels)
+        labels = np.eye(num_classes)[labels]
+    else:
+        num_recordings, num_classes = labels.shape
 
     # Compute and summarize the confusion matrices for each class across at distinct output values.
     auprc = np.zeros(num_classes)
@@ -182,6 +185,34 @@ def m_auprc(labels, outputs):
     macro_auprc = np.nanmean(auprc)
 
     return macro_auprc
+
+
+def multilabel_auroc(labels, outputs):
+    """
+    Multi-label AUROC
+
+    Parameters:
+    -----------
+    labels:
+        shape (n_samples, n_classes)
+    outputs:
+        shape (n_samples, n_classes)
+    """
+    return m_auroc(labels, outputs, True)
+
+
+def multilabel_auprc(labels, outputs):
+    """
+    Multi-label AUPRC
+
+    Parameters:
+    -----------
+    labels:
+        shape (n_samples, n_classes)
+    outputs:
+        shape (n_samples, n_classes)
+    """
+    return m_auprc(labels, outputs, True)
 
 
 def mauprc(y, preds):
