@@ -102,6 +102,8 @@ class CinC2020(TS):
     def compute_cinc2020_metric_with_preds(self, labels, outputs):
         """
         Compute the evaluation metric for the Challenge.
+        Reference:
+        https://github.com/physionetchallenges/evaluation-2020
         """
         num_recordings, num_classes = np.shape(labels)
         def compute_modified_confusion_matrix(labels, outputs):

@@ -12,6 +12,12 @@ from ..module.positional_encoding import PositionalEncoding
 
 @NETWORKS.register_module("DeepAndWide")
 class DeepAndWide(nn.Module):
+    '''
+    Code implemented based on the official implementation of paper: 
+    A Wide and Deep Transformer Neural Network for 12-Lead ECG Classification
+    Reference:
+    https://ieeexplore.ieee.org/document/9344053
+    '''
     def __init__(
             self,
             d_model: int = 256,   # embedding size
@@ -62,7 +68,10 @@ class DeepAndWide(nn.Module):
             self.output_size = deepfeat_sz+nb_feats+nb_demo
         else:
             raise ValueError
-        print(f'ecg feature: {self.partial_feature}, dimension: {self.output_size}')
+        if self.partial_feature is None:
+            print(f'ecg feature: Wide and Deep, dimension: {self.output_size}')
+        else:
+            print(f'ecg feature: {self.partial_feature}, dimension: {self.output_size}')
 
         if weight_file is not None:
             self.load_state_dict(torch.load(weight_file, map_location="cpu"))

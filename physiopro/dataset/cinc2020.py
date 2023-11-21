@@ -16,6 +16,12 @@ from .base import DATASETS, BaseDataset
 
 @DATASETS.register_module("CinC2020")
 class CinC2020(BaseDataset):
+    '''
+    Code implemented based on the official implementation of paper: 
+    A Wide and Deep Transformer Neural Network for 12-Lead ECG Classification
+    Reference:
+    https://ieeexplore.ieee.org/document/9344053
+    '''
     def __init__(
             self,
             data_folder: Path,
