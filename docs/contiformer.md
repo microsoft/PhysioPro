@@ -7,6 +7,7 @@ This document gives an example on how to use the PhysioPro framework for [ContiF
 Here we take the `Heartbeat` classification task from [UEA & UCR Time Series Classification Repository](http://timeseriesclassification.com/dataset.php) as an example.
 
 1. Download the dataset
+
 ```bash
 cd PhysioPro
 mkdir data
@@ -16,7 +17,8 @@ unzip data/Multivariate2018_ts.zip -d data/
 rm data/Multivariate2018_ts.zip
 ```
 
-2. Run `Heartbeat` classification task with `TSRNN` model
+2. Run `Heartbeat` classification task with `ContiFormer`
+
 ```bash
 # create the output directory
 mkdir -p outputs/Multivariate_ts/Heartbeat

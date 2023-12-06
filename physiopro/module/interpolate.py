@@ -49,7 +49,7 @@ def hermite_cubic_coefficients_with_backward_differences(x, t=None):
 def linear_interpolation_coeffs(x, t):
     coeffs = []
     for i in range(x.size(0)):
-        index = torch.where(not torch.isnan(x[i, :, 0]))[0]
+        index = torch.where(~torch.isnan(x[i, :, 0]))[0]
 
         if len(index) == 1:
             coeff = x[i][index[0]].unsqueeze(0)
