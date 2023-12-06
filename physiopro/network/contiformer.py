@@ -4,7 +4,7 @@
 from typing import Optional
 import math
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
 from .tsrnn import NETWORKS
 from ..module.linear import ODELinear, InterpLinear
@@ -13,7 +13,7 @@ from ..module.positional_encoding import PositionalEncoding
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__dict__ = self
 
 
@@ -226,7 +226,7 @@ class EncoderLayer(nn.Module):
     """Compose with two layers"""
 
     def __init__(self, d_model, d_inner, n_head, d_k, d_v, dropout=0.1, normalize_before=True, args=None):
-        super(EncoderLayer, self).__init__()
+        super().__init__()
         self.slf_attn = MultiHeadAttention(
             n_head, d_model, d_k, d_v, dropout=dropout, normalize_before=normalize_before, args_ode=args
         )
