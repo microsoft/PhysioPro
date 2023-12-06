@@ -36,3 +36,6 @@ disable =
     deprecated-module,
     wildcard-import,
     unused-wildcard-import,
+    not-callable,
+    abstract-method,
+    protected-access,

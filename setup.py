@@ -68,6 +68,7 @@ def setup():
         install_requires=[
             "torch==2.0.1",
             "torchvision==0.15.2",
+            "torchcde==0.2.5",
             "utilsd==0.0.18.post0",
             "pandas>=2.0.3",
             "scipy>=1.10.1",

@@ -4,7 +4,7 @@
 from typing import Optional
 import math
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
 from .tsrnn import NETWORKS
 from ..module.linear import ODELinear, InterpLinear
@@ -13,7 +13,7 @@ from ..module.positional_encoding import PositionalEncoding
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__dict__ = self
 
 
@@ -209,7 +209,7 @@ class Encoder(nn.Module):
         result[:, :, 1::2] = torch.cos(result[:, :, 1::2])
         return result
 
-    def forward(self, x, t, slf_attn_mask):
+    def forward(self, x, t, mask):
         """Encode event sequences via masked self-attention."""
 
         tem_enc = self.temporal_enc(t)
@@ -219,21 +219,21 @@ class Encoder(nn.Module):
 
         for enc_layer in self.layer_stack:
             enc_output += tem_enc
-            enc_output, _ = enc_layer(enc_output, t, slf_attn_mask=slf_attn_mask)
+            enc_output, _ = enc_layer(enc_output, t, mask=mask)
         return enc_output
 
 class EncoderLayer(nn.Module):
     """Compose with two layers"""
 
     def __init__(self, d_model, d_inner, n_head, d_k, d_v, dropout=0.1, normalize_before=True, args=None):
-        super(EncoderLayer, self).__init__()
+        super().__init__()
         self.slf_attn = MultiHeadAttention(
             n_head, d_model, d_k, d_v, dropout=dropout, normalize_before=normalize_before, args_ode=args
         )
         self.pos_ffn = PositionwiseFeedForward(d_model, d_inner, dropout=dropout, normalize_before=normalize_before)
 
-    def forward(self, x, t, slf_attn_mask=None):
-        enc_output, enc_slf_attn = self.slf_attn(x, x, x, t, mask=slf_attn_mask)
+    def forward(self, x, t, mask=None):
+        enc_output, enc_slf_attn = self.slf_attn(x, x, x, t, mask=mask)
         enc_output = self.pos_ffn(enc_output)
 
         return enc_output, enc_slf_attn

@@ -2,8 +2,8 @@
 # Licensed under the MIT License.
 
 import torchcde
-import torch.nn as nn
 import torch
+from torch import nn
 from ..module.ode import build_fc_odefunc, TimeVariableODE
 from ..module.interpolate import linear_interpolation_coeffs, hermite_cubic_coefficients_with_backward_differences
 
@@ -232,7 +232,7 @@ class ODELinear(nn.Module):
         }
         self.d_model = d_model
         self.nlinspace = args_ode.nlinspace
-        if self.approximate_method == 'bilinear' or self.approximate_method == 'last':
+        if self.approximate_method in ['bilinear', 'last']:
             self.nlinspace = 1
 
     def forward(self, x, t, approximate_method=None):
