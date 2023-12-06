@@ -1,0 +1,43 @@
+data:
+  type: ts
+  prefix: data/Multivariate_ts
+  name: Heartbeat
+  task: classification
+network:
+  type: contiformer
+  d_model: 32
+  n_layers: 1
+  n_head: 4
+  d_k: 8
+  d_v: 8
+  d_inner: 128
+  actfn_ode: sigmoid
+  layer_type_ode: concatnorm
+  zero_init_ode: False
+  linear_type_ode: before
+  atol_ode: 1e-1
+  rtol_ode: 1e-1
+  itol_ode: 1e-2
+  method_ode: rk4
+  regularize: False
+  approximate_method: bilinear
+  interpolate_ode: cubic
+  nlinspace: 1
+model:
+  type: ts
+  task: multiclassification
+  optimizer: Adam
+  lr: 0.001
+  weight_decay: 0.0
+  loss_fn: cross_entropy
+  metrics: [accuracy]
+  observe: accuracy
+  lower_is_better: False
+  max_epochs: 500
+  early_stop: 50
+  batch_size: 64
+  aggregate: True
+runtime:
+  seed: 42
+  use_cuda: true
+  output_dir: outputs/Multivariate_ts/Heartbeat
