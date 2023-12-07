@@ -3,13 +3,13 @@
 
 from inspect import signature
 import torch
-import torch.nn as nn
+from torch import nn
 from torchdiffeq import odeint_adjoint as odeint
 
 
 class ConcatLinear_v2(nn.Module):
     def __init__(self, dim_in, dim_out):
-        super(ConcatLinear_v2, self).__init__()
+        super().__init__()
         self._layer = nn.Linear(dim_in, dim_out)
         self._hyper_bias = nn.Linear(1, dim_out, bias=False)
         self._hyper_bias.weight.data.fill_(0.0)
@@ -20,7 +20,7 @@ class ConcatLinear_v2(nn.Module):
 
 class ConcatLinearNorm(nn.Module):
     def __init__(self, dim_in, dim_out):
-        super(ConcatLinearNorm, self).__init__()
+        super().__init__()
         self._layer = nn.Linear(dim_in, dim_out)
         self._hyper_bias = nn.Linear(1, dim_out, bias=False)
         self._hyper_bias.weight.data.fill_(0.0)
@@ -32,7 +32,7 @@ class ConcatLinearNorm(nn.Module):
 
 class ConcatSquashLinear(nn.Module):
     def __init__(self, dim_in, dim_out):
-        super(ConcatSquashLinear, self).__init__()
+        super().__init__()
         self._layer = nn.Linear(dim_in, dim_out)
         self._hyper_bias = nn.Linear(1, dim_out, bias=False)
         self._hyper_gate = nn.Linear(1, dim_out)
@@ -44,16 +44,15 @@ class ConcatSquashLinear(nn.Module):
 
 class DiffEqWrapper(nn.Module):
     def __init__(self, module):
-        super(DiffEqWrapper, self).__init__()
+        super().__init__()
         self.module = module
 
     def forward(self, t, y):
         if len(signature(self.module.forward).parameters) == 1:
             return self.module(y)
-        elif len(signature(self.module.forward).parameters) == 2:
+        if len(signature(self.module.forward).parameters) == 2:
             return self.module(t, y)
-        else:
-            raise ValueError("Differential equation needs to either take (t, y) or (y,) as input.")
+        raise ValueError("Differential equation needs to either take (t, y) or (y,) as input.")
 
     def __repr__(self):
         return self.module.__repr__()
@@ -68,7 +67,7 @@ class SequentialDiffEq(nn.Module):
     """
 
     def __init__(self, *layers):
-        super(SequentialDiffEq, self).__init__()
+        super().__init__()
         self.layers = nn.ModuleList([diffeq_wrapper(layer) for layer in layers])
 
     def forward(self, t, x):
@@ -152,7 +151,7 @@ class TimeVariableODE(nn.Module):
             rtol=self.rtol,
             atol=self.atol,
             method=method,
-            options=dict(step_size=atol)
+            options={"step_size": atol}
         )
         _, _, energy, xs = solution
         if gauss:
@@ -161,8 +160,7 @@ class TimeVariableODE(nn.Module):
         if self.regularize:
             reg = energy * self.energy_regularization
             return WrapRegularization.apply(reg, xs)[0]
-        else:
-            return xs
+        return xs
 
     def forward(self, s, state):
         """Solves the same dynamics but uses a dummy variable that always integrates [0, 1]."""
@@ -193,7 +191,7 @@ class TimeVariableODE(nn.Module):
 ACTFNS = {
     "softplus": (lambda dim: nn.Softplus()),
     "tanh": (lambda dim: nn.Tanh()),
-    "swish": (lambda dim: TimeDependentSwish(dim)),
+    "swish": TimeDependentSwish,
     "relu": (lambda dim: nn.ReLU()),
     'leakyrelu': (lambda dim: nn.LeakyReLU()),
     'sigmoid': (lambda dim: nn.Sigmoid()),
@@ -210,7 +208,7 @@ LAYERTYPES = {
 def build_fc_odefunc(dim=2, hidden_dims=[64, 64, 64], out_dim=None, nonzero_dim=None, actfn="softplus",
                      layer_type="concat",
                      zero_init=True, actfirst=False):
-    assert layer_type in LAYERTYPES.keys(), f"layer_type must be one of {LAYERTYPES.keys()} but was given {layer_type}"
+    assert layer_type in LAYERTYPES, f"layer_type must be one of {LAYERTYPES.keys()} but was given {layer_type}"
     layer_fn = LAYERTYPES[layer_type]
     if layer_type == "concatlinear":
         hidden_dims = None
