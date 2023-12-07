@@ -29,6 +29,7 @@ class MaskTS(TS):
             network: Optional[nn.Module] = None,
             output_dir: Optional[Path] = None,
             checkpoint_dir: Optional[Path] = None,
+            num_workers: Optional[int] = 8,
             early_stop: Optional[int] = None,
             out_ranges: Optional[List[Union[Tuple[int, int], Tuple[int, int, int]]]] = None,
             model_path: Optional[str] = None,
@@ -71,6 +72,7 @@ class MaskTS(TS):
             network,
             output_dir,
             checkpoint_dir,
+            num_workers,
             early_stop,
             out_ranges,
             model_path,
@@ -116,10 +118,10 @@ class MaskTS(TS):
             if self.norm_time_flg:
                 times = times / inputs.shape[1]
 
-            seq_out, emb_outs = self.network(inputs, times, mask=mask)  # [B, T, H]
+            seq_out, _ = self.network(inputs, times, mask=mask)  # [B, T, H]
 
             length = [_ - 1 for _ in length]
-            emb_outs = inputs[np.arange(inputs.shape[0]), length, :]
+            emb_outs = seq_out[np.arange(inputs.shape[0]), length, :]
 
         elif self.fill_nan_type == 'zero':  # for transformers and ssms
             inputs = torch.nan_to_num(inputs, nan=0.0)
