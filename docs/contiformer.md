@@ -30,7 +30,7 @@ tensorboard --logdir outputs/
 
 The results will be saved to `outputs/Multivariate_ts/Heartbeat` directory.
 
-3. Run regular time series classification task with `Contiformer`
+3. Run regular time series classification task with `ContiFormer`
 
 ```bash
 # create the output directory

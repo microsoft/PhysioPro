@@ -3,7 +3,7 @@ data:
   prefix: data/Multivariate_ts
   name: Heartbeat
   task: classification
-  mask_ratio: 0.3
+  mask_ratio: 0.3  # apply random masking: [0, 0.3, 0.5, 0.7], 0 for regular time series
 network:
   type: contiformer
   d_model: 32
@@ -25,7 +25,7 @@ network:
   interpolate_ode: cubic
   nlinspace: 1
 model:
-  type: mask_ts
+  type: mask_ts  # for irregular time series classification
   task: multiclassification
   optimizer: Adam
   lr: 0.001
@@ -38,8 +38,8 @@ model:
   early_stop: 50
   batch_size: 16
   aggregate: True
-  fill_nan_type: merge
-  norm_time_flg: True
+  fill_nan_type: merge  # ways to fill nan values: [merge, zero, cubic, linear]
+  norm_time_flg: True   # whether to norm timestamps, if true timestamps span from [0, 1]
 runtime:
   seed: 42
   use_cuda: true

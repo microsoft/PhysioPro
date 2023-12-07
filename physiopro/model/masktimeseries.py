@@ -35,7 +35,7 @@ class MaskTS(TS):
             model_path: Optional[str] = None,
             out_size: int = 1,
             aggregate: bool = True,
-            fill_nan_type: Optional[str] = 'merge',   # ways to fill nan values: [merge, zero, cubic, linear]
+            fill_nan_type: Optional[str] = 'merge',
             norm_time_flg: Optional[bool] = True,
     ):
         """
@@ -82,7 +82,8 @@ class MaskTS(TS):
         self.fill_nan_type = fill_nan_type
         self.norm_time_flg = norm_time_flg
 
-    def merge(self, sequences, pad_value=0.0, pad=False):
+    @staticmethod
+    def merge(sequences, pad_value=0.0, pad=False):
         device = sequences[0].device
         lengths = [len(seq) for seq in sequences]
         dim = sequences[0].size(1)  # get dim for each sequence
@@ -126,23 +127,18 @@ class MaskTS(TS):
         elif self.fill_nan_type == 'zero':  # for transformers and ssms
             inputs = torch.nan_to_num(inputs, nan=0.0)
             seq_out, emb_outs = self.network(inputs)  # [B, T, H]
-        elif self.fill_nan_type == 'cubic':
+        elif self.fill_nan_type in ['cubic', 'linear']:  # for cde-based, gru-based and ode-rnn
             if not self.norm_time_flg:
                 times = torch.arange(inputs.shape[1]).to(inputs.device).float()
             else:
                 times = torch.linspace(0, 1, inputs.shape[1]).to(inputs.device).float()
-            coeffs = torchcde.natural_cubic_spline_coeffs(inputs, t=times)
-            cubic_spline = torchcde.CubicSpline(coeffs, t=times)
-            inputs = cubic_spline.evaluate(times)
-            seq_out, emb_outs = self.network(inputs)  # [B, T, H]
-        elif self.fill_nan_type == 'linear':
-            if not self.norm_time_flg:
-                times = torch.arange(inputs.shape[1]).to(inputs.device).float()
+            if self.fill_nan_type == 'cubic':
+                coeffs = torchcde.natural_cubic_spline_coeffs(inputs, t=times)
+                spline = torchcde.CubicSpline(coeffs, t=times)
             else:
-                times = torch.linspace(0, 1, inputs.shape[1]).to(inputs.device).float()
-            coeffs = torchcde.linear_interpolation_coeffs(inputs, t=times)
-            linear_spline = torchcde.LinearInterpolation(coeffs, t=times)
-            inputs = linear_spline.evaluate(times)
+                coeffs = torchcde.linear_interpolation_coeffs(inputs, t=times)
+                spline = torchcde.LinearInterpolation(coeffs, t=times)
+            inputs = spline.evaluate(times)
             seq_out, emb_outs = self.network(inputs)  # [B, T, H]
         else:
             raise NotImplementedError
