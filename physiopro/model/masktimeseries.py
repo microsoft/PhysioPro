@@ -82,7 +82,8 @@ class MaskTS(TS):
         self.fill_nan_type = fill_nan_type
         self.norm_time_flg = norm_time_flg
 
-    def merge(self, sequences, pad_value=0.0, pad=False):
+    @staticmethod
+    def merge(sequences, pad_value=0.0, pad=False):
         device = sequences[0].device
         lengths = [len(seq) for seq in sequences]
         dim = sequences[0].size(1)  # get dim for each sequence
@@ -126,7 +127,7 @@ class MaskTS(TS):
         elif self.fill_nan_type == 'zero':  # for transformers and ssms
             inputs = torch.nan_to_num(inputs, nan=0.0)
             seq_out, emb_outs = self.network(inputs)  # [B, T, H]
-        elif self.fill_nan_type == 'cubic' or self.fill_nan_type == 'linear':  # for cde-based, gru-based and ode-rnn
+        elif self.fill_nan_type in ['cubic', 'linear']:  # for cde-based, gru-based and ode-rnn
             if not self.norm_time_flg:
                 times = torch.arange(inputs.shape[1]).to(inputs.device).float()
             else:
