@@ -35,8 +35,8 @@ class MaskTS(TS):
             model_path: Optional[str] = None,
             out_size: int = 1,
             aggregate: bool = True,
-            fill_nan_type: Optional[str] = 'merge',   # ways to fill nan values: [merge, zero, cubic, linear]
-            norm_time_flg: Optional[bool] = True,     # whether to norm timestamps, if true timestamps span from [0, 1]
+            fill_nan_type: Optional[str] = 'merge',
+            norm_time_flg: Optional[bool] = True,
     ):
         """
         The model for general time-series prediction.
