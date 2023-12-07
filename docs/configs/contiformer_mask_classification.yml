@@ -36,7 +36,7 @@ model:
   lower_is_better: False
   max_epochs: 500
   early_stop: 50
-  batch_size: 64
+  batch_size: 16
   aggregate: True
   fill_nan_type: merge
   norm_time_flg: True

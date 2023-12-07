@@ -28,7 +28,7 @@ python -m physiopro.entry.train docs/configs/contiformer_mask_classification.yml
 tensorboard --logdir outputs/
 ```
 
-The results will be saved to `outputs/Multivariate2018_ts/Heartbeat` directory.
+The results will be saved to `outputs/Multivariate_ts/Heartbeat` directory.
 
 3. Run regular time series classification task with `Contiformer`
 
@@ -43,4 +43,4 @@ python -m physiopro.entry.train docs/configs/contiformer_mask_classification.yml
 tensorboard --logdir outputs/
 ```
 
-The results will be saved to `outputs/Multivariate2018_ts/Heartbeat` directory.
+The results will be saved to `outputs/Multivariate_ts/Heartbeat` directory.
