@@ -222,6 +222,7 @@ class Encoder(nn.Module):
             enc_output, _ = enc_layer(enc_output, t, slf_attn_mask=slf_attn_mask)
         return enc_output
 
+
 class EncoderLayer(nn.Module):
     """Compose with two layers"""
 

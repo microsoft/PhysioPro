@@ -36,7 +36,7 @@ model:
   lower_is_better: False
   max_epochs: 500
   early_stop: 50
-  batch_size: 64
+  batch_size: 16
   aggregate: True
   fill_nan_type: merge  # ways to fill nan values: [merge, zero, cubic, linear]
   norm_time_flg: True   # whether to norm timestamps, if true timestamps span from [0, 1]
