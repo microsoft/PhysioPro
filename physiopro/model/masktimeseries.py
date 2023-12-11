@@ -119,7 +119,12 @@ class MaskTS(TS):
             if self.norm_time_flg:
                 times = times / inputs.shape[1]
 
-            seq_out, _ = self.network(inputs, times, mask=mask)  # [B, T, H]
+            attn_mask = torch.zeros(inputs.shape[0], inputs.shape[1], inputs.shape[1]).to(inputs.device)
+            for i in range(inputs.shape[0]):
+                attn_mask[i, :length[i], :length[i]] = torch.ones(length[i], length[i])
+            attn_mask = (1 - attn_mask).bool()
+
+            seq_out, _ = self.network(inputs, times, mask=attn_mask)  # [B, T, H]
 
             length = [_ - 1 for _ in length]
             emb_outs = seq_out[np.arange(inputs.shape[0]), length, :]
