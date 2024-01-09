@@ -1,0 +1,46 @@
+data:
+  type: SEED
+  window_size: 1
+  subject_index: 7
+  # set up pre-trainde model path
+  # the upper directory of the dataset
+  # prefix: /dataset
+
+network:
+  type: MMM_Encoder
+  depth: 6
+  num_heads: 8
+  encoder_dim: 16
+  channel_num: 79
+  in_chans: 5
+
+decoder_network:
+  type: MMM_Encoder
+  depth: 6
+  encoder_dim: 16
+  channel_num: 79
+  in_chans: 16
+
+model:
+  type: MMM_Finetune
+  task: multiclassification
+  # set up pre-trainde model path
+  # E.g.
+  # model_path: /model/mmm_pretrained.pkl
+  optimizer: Adam
+  lr: 0.0005
+  weight_decay: 0.005
+  loss_fn: cross_entropy
+  metrics: [accuracy]
+  observe: accuracy
+  lower_is_better: False
+  max_epochs: 100
+  early_stop: 70
+  batch_size: 32
+  out_size: 3
+  mask_ratio: 0.
+
+runtime:
+  seed: 51
+  use_cuda: true
+  output_dir: ./dev/s7
