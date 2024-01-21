@@ -60,7 +60,7 @@ class TemporalConvNet(nn.Module):
             max_length: Optional[int] = 100,
             input_size: Optional[int] = None,
             weight_file: Optional[Path] = None,
-        ):
+    ):
         """The implementation of TCN described in https://arxiv.org/abs/1803.01271.
 
         Args:
@@ -91,6 +91,7 @@ class TemporalConvNet(nn.Module):
 
         self.network = nn.Sequential(*layers)
         self.__output_size = num_channels[-1]
+        self.__hidden_size = num_channels[-1]
         self._position_embedding = position_embedding
 
         if position_embedding:
@@ -142,6 +143,8 @@ class TemporalConvNetLayer(nn.Module):
         super().__init__(self)
         layers = []
         num_channels = [channel] * num_levels
+        if input_size is None:
+            input_size = num_channels
         for i in range(num_levels):
             dilation_size = dilation**i
             in_channels = input_size if i == 0 else num_channels[i - 1]
@@ -160,6 +163,7 @@ class TemporalConvNetLayer(nn.Module):
 
         self.network = nn.Sequential(*layers)
         self.__output_size = num_channels[-1]
+        self.__hidden_size = num_channels[-1]
         self._position_embedding = position_embedding
 
         if position_embedding:
