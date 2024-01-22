@@ -2,7 +2,7 @@ data:
   type: tpp
   prefix: /nas/user/cyq/TSFM/Temporal_Point_Process
   name: data_neonate
-  folder: folder2
+  folder: fold2
   max_len: 100
 network:
   type: contiformer
