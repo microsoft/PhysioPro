@@ -28,7 +28,6 @@ from .base import MODELS, BaseModel
 class TPP(BaseModel):
     def __init__(
             self,
-            task: str,
             optimizer: str,
             lr: float,
             weight_decay: float,
@@ -87,7 +86,8 @@ class TPP(BaseModel):
             input_time_flag: whether to input times to network
         """
         self.hyper_paras = {
-            "task": task,
+            "intensity_type": intensity_type,
+            "use_rnn": use_rnn,
             "out_ranges": out_ranges,
             "out_size": out_size,
             "aggregate": aggregate,
@@ -117,23 +117,21 @@ class TPP(BaseModel):
         self.use_likelihood = use_likelihood
         self.use_linear = not use_likelihood
         self.step_size = step_size
-        self.intensity_type = intensity_type
-        self.use_rnn = use_rnn
         self.temporal_encoding = temporal_encoding
         self.input_time_flag = input_time_flag
 
     def _build_network(
             self,
             network,
-            task: str,
             out_ranges: Optional[List[Union[Tuple[int, int, int], Tuple[int, int]]]] = None,
             out_size: int = 1,
             aggregate: bool = True,
+            intensity_type: str = 'thp',
+            use_rnn: bool = True,
         ) -> None:
         """Initilize the network parameters
 
         Args:
-            task: the prediction task, classification or regression.
             out_ranges: a list of final ranges to take as final output. Should have form [(start, end), (start, end, step), ...]
             out_size: the output size for multi-class classification or multi-variant regression task.
             aggregate: whether to aggregate across whole sequence.
@@ -142,9 +140,11 @@ class TPP(BaseModel):
         self.network = network
         self.aggregate = aggregate
         self.event_emb = nn.Embedding(self.hyper_paras['out_size'] + 1, network.hidden_size, padding_idx=0)
-        self.rnn = RNN_layers(network.hidden_size, network.hidden_size)
 
-        if self.intensity_type == 'sahp':
+        if use_rnn:
+            self.rnn = RNN_layers(network.hidden_size, network.hidden_size)
+
+        if intensity_type == 'sahp':
             self.gelu = nn.GELU()
 
             self.start_layer = nn.Sequential(
@@ -163,7 +163,7 @@ class TPP(BaseModel):
             self.intensity_layer = nn.Sequential(
                 nn.Linear(network.output_size, self.hyper_paras['out_size'], bias=True), nn.Softplus(beta=1.)
             )
-        elif self.intensity_type == "linear":
+        elif intensity_type == "thp":
             self.linear = nn.Linear(network.output_size, self.hyper_paras['out_size'])
             self.alpha = nn.Parameter(torch.tensor([-0.1] * self.hyper_paras['out_size']))
             self.beta = nn.Parameter(torch.tensor([1.0] * self.hyper_paras['out_size']))
@@ -263,6 +263,14 @@ class TPP(BaseModel):
         state = self.state_decay(converge_point, start_point, omega, timestamp)
         return self.intensity_layer(state)
 
+    def calculate_intensity(self, **kwargs):
+        if self.hyper_paras["intensity_type"] == 'thp':
+            return self.calculate_intensity_thp(**kwargs)
+        elif self.hyper_paras["intensity_type"] == 'sahp':
+            return self.calculate_intensity_sahp(**kwargs)
+        else:
+            raise ValueError
+
     def compute_integral_unbiased(self, all_lambda, event_time, non_pad_mask):
         """ Log-likelihood of non-events, using Monte Carlo integration. """
         input_lambda = all_lambda.clone()
@@ -286,8 +294,8 @@ class TPP(BaseModel):
     def temporal_log_likelihood(self, all_lambda, event_time, event_type):
         non_pad_mask = self.get_non_pad_mask(event_type).squeeze(2)
 
-        type_mask = torch.zeros([*event_type.size(), self.num_types], device=event_type.device)
-        for i in range(self.num_types):
+        type_mask = torch.zeros([*event_type.size(), self.hyper_paras["out_size"]], device=event_type.device)
+        for i in range(self.hyper_paras["out_size"]):
             type_mask[:, :, i] = (event_type == i + 1).bool().to(event_type.device)
 
         diff_time = (event_time[:, 1:] - event_time[:, :-1]) * non_pad_mask[:, 1:]
@@ -297,7 +305,7 @@ class TPP(BaseModel):
         num_sample = torch.clip(num_sample, 0, self.tmax * self.step_size - 1).long()
         event_lambda = all_lambda[:, :-1, ...]
         num_sample = num_sample.reshape(-1).cpu()
-        event_lambda = event_lambda.reshape(num_sample.shape[0], -1, self.num_types)
+        event_lambda = event_lambda.reshape(num_sample.shape[0], -1, self.hyper_paras["out_size"])
 
         event_lambda = event_lambda[torch.arange(num_sample.shape[0]), num_sample, :]
         event_lambda = event_lambda.reshape(diff_time.shape[0], diff_time.shape[1], -1)
@@ -319,6 +327,34 @@ class TPP(BaseModel):
         time_prediction = self.time_predictor(enc_out, non_pad_mask)
         type_prediction = self.type_predictor(enc_out, non_pad_mask)
         return type_prediction, time_prediction
+
+    def temporal_prediction_from_integral(self, all_lambda, enc_out, event_time, event_type):
+        """ Prediction time using equation in the paper"""
+        non_pad_mask = self.get_non_pad_mask(event_type).squeeze(2)
+
+        timestep = 1.0 / self.step_size
+        temp_time = torch.linspace(start=0, end=self.tmax, steps=self.tmax * self.step_size).to(all_lambda.device)
+        sample_time = torch.ones_like(event_time.unsqueeze(2)) * temp_time
+
+        sum_lambda = all_lambda.sum(dim=-1)  # remove event type [B, T, sample]
+
+        integral_lambda = torch.cumsum(sum_lambda, dim=-1) * timestep
+        prob_lambda = torch.exp(-integral_lambda) * sum_lambda
+
+        expected_lambda = sample_time * prob_lambda
+
+        # trapeze method
+        time_prediction = 0.5 * (expected_lambda[:, :, 1:] + expected_lambda[:, :, :-1]).sum(dim=-1) * timestep
+        # time_prediction = (sample_time * prob_lambda).sum(dim=-1) * (tmax / num_samples)
+
+        ratio_lambda = all_lambda / (sum_lambda.unsqueeze(-1) + 1e-6)
+        prob_type = ratio_lambda * prob_lambda.unsqueeze(-1)
+        event_prediction = 0.5 * (prob_type[:, :, 1:, :] + prob_type[:, :, :-1, :]).sum(dim=-2) * timestep
+
+        time_prediction = time_prediction * non_pad_mask
+        event_prediction = event_prediction * non_pad_mask.unsqueeze(-1)
+
+        return event_prediction, time_prediction.unsqueeze(-1)
 
     def temporal_prediction(self, all_lambda, enc_out, event_time, event_type):
         if self.use_linear:
@@ -384,7 +420,7 @@ class TPP(BaseModel):
     def get_loss_fn(self, loss_fn):
         if loss_fn == 'multitask':
             return self.calculate_loss
-        elif loss_fn == 'loglikelihood':
+        elif loss_fn == 'll':
             return self.calculate_loglikelihood_loss
         else:
             raise NotImplementedError
@@ -398,7 +434,7 @@ class TPP(BaseModel):
             metrics: List[str],
             observe: str,
             lower_is_better: bool,
-            max_epoches: int,
+            max_epochs: int,
             batch_size: int,
             early_stop: Optional[int] = None,
     ) -> None:
@@ -411,11 +447,11 @@ class TPP(BaseModel):
         for f in metrics:
             self.metric_fn[f] = self.get_metric_fn(f)
         self.metrics = metrics
-        if early_stop is not None and self.use_earlystop:
+        if early_stop is not None:
             self.early_stop = EarlyStop(patience=early_stop, mode="min" if lower_is_better else "max")
         else:
-            self.early_stop = EarlyStop(patience=max_epoches, mode="min" if lower_is_better else "max")
-        self.max_epoches = max_epoches
+            self.early_stop = EarlyStop(patience=max_epochs, mode="min" if lower_is_better else "max")
+        self.max_epoches = max_epochs
         self.batch_size = batch_size
         self.observe = observe
         self.lr = lr
@@ -445,10 +481,9 @@ class TPP(BaseModel):
 
         enc_out = self.network(enc_output)
 
-        if self.use_rnn:
+        if self.hyper_paras["use_rnn"]:
             enc_out = self.rnn(enc_output, non_pad_mask)
-        all_lambda = self.network.calculate_intensity(hidden=enc_out, t0=event_time,
-                                                      t1=event_time + self.network.tmax)
+        all_lambda = self.calculate_intensity(hidden=enc_out, t0=event_time, t1=event_time + self.tmax)
         return all_lambda, enc_out
 
     def _init_scheduler(self, use_schedule=False):
@@ -486,7 +521,7 @@ class TPP(BaseModel):
             batch_size=self.batch_size,
             pin_memory=True,
             collate_fn=trainset.collate_fn,
-            num_workers=self.num_threads,
+            num_workers=self.num_workers,
         )
         self._init_scheduler(False)
 
@@ -514,15 +549,14 @@ class TPP(BaseModel):
                 }) for metric in self.metrics
             }
             start_time = time.time()
-            for _, event_time, _, event_type, *inputs in enumerate(loader):
+            for _, (event_time, _, event_type) in enumerate(loader):
                 if use_cuda():
                     event_time, event_type = (
                         to_torch(event_time, device="cuda"),
                         to_torch(event_type, device="cuda"),
                     )
-                    inputs = [to_torch(_, device="cuda") for _ in inputs]
 
-                all_lambda, enc_out = self((event_type, event_time, *inputs))
+                all_lambda, enc_out = self((event_type, event_time))
                 # negative log-likelihood
                 loss, event_loss, pred_loss, reg_loss = self.loss_fn(all_lambda, enc_out, event_time, event_type)
                 type_prediction, time_prediction = self.temporal_prediction(all_lambda, enc_out,  event_time, event_type)
@@ -686,7 +720,7 @@ class TPP(BaseModel):
             batch_size=self.batch_size,
             pin_memory=True,
             collate_fn=validset.collate_fn,
-            num_workers=self.num_threads,
+            num_workers=self.num_workers,
         )
 
         self.eval()
@@ -702,16 +736,14 @@ class TPP(BaseModel):
         start_time = time.time()
         validset.load()
         with torch.no_grad():
-            for _, event_time, _, event_type, *inputs in enumerate(
-                    loader):
+            for _, (event_time, _, event_type) in enumerate(loader):
                 if use_cuda():
                     event_time, event_type = (
                         to_torch(event_time, device="cuda"),
                         to_torch(event_type, device="cuda"),
                     )
-                    inputs = [to_torch(_, device="cuda") for _ in inputs]
 
-                all_lambda, enc_out = self((event_type, event_time, *inputs))
+                all_lambda, enc_out = self((event_type, event_time))
                 # negative log-likelihood
                 loss, event_loss, pred_loss, reg_loss = self.loss_fn(all_lambda, enc_out, event_time, event_type)
                 type_prediction, time_prediction = self.temporal_prediction(all_lambda, enc_out, event_time, event_type)
@@ -798,19 +830,17 @@ class TPP(BaseModel):
             batch_size=self.batch_size,
             pin_memory=True,
             collate_fn=dataset.collate_fn,
-            num_workers=self.num_threads,
+            num_workers=self.num_workers,
         )
 
-        for _, event_time, _, event_type, *inputs in enumerate(
-                loader):
+        for _, (event_time, _, event_type) in enumerate(loader):
             if use_cuda():
                 event_time, event_type = (
                     to_torch(event_time, device="cuda"),
                     to_torch(event_type, device="cuda"),
                 )
-                inputs = [to_torch(_, device="cuda") for _ in inputs]
 
-            all_lambda, enc_out = self((event_type, event_time, *inputs))
+            all_lambda, enc_out = self((event_type, event_time))
             # self.network.visualize((event_type, event_time))
             type_prediction, time_prediction = self.temporal_prediction(all_lambda, enc_out, event_time, event_type)
 

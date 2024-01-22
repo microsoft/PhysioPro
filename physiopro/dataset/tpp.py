@@ -1,11 +1,9 @@
 import numpy as np
-import torch
-from .base import BaseDataset
-from forecaster.dataset import DATASETS
-from pathlib import Path
 from typing import Optional, Any
-import pickle
 import os
+import torch
+import pickle
+from .base import BaseDataset, DATASETS
 
 
 @DATASETS.register_module("tpp")
@@ -15,14 +13,16 @@ class EventDataset(BaseDataset):
 
     def __init__(
         self,
-        data_folder: Path,
+        prefix: str = "data/temporal_point_process",
+        name: str = "Neonate",
+        folder: str = "folder1",
         dataset: Optional[str] = "train",
         preprocessor: Optional[Any] = None,
         max_len: Optional[int] = 500,
         clip_max: Optional[int] = -1,
     ):
         super(EventDataset, self).__init__(preprocessor=preprocessor)
-        self.data_folder = data_folder
+        self.data_folder = os.path.join(prefix, name, folder)
         self.dataset = dataset
         self.max_len = max_len
         assert dataset in ['train', 'test'], 'Invalid dataset'

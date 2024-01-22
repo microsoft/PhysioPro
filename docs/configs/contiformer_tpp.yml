@@ -1,0 +1,51 @@
+data:
+  type: tpp
+  prefix: /nas/user/cyq/TSFM/Temporal_Point_Process
+  name: data_neonate_single
+  folder: folder2
+  max_len: 100
+network:
+  type: contiformer
+  d_model: 32
+  n_layers: 1
+  n_head: 4
+  d_k: 8
+  d_v: 8
+  d_inner: 128
+  actfn_ode: sigmoid
+  layer_type_ode: concatnorm
+  zero_init_ode: False
+  linear_type_ode: before
+  atol_ode: 1e-1
+  rtol_ode: 1e-1
+  itol_ode: 1e-2
+  method_ode: rk4
+  regularize: False
+  approximate_method: bilinear
+  interpolate_ode: cubic
+  nlinspace: 1
+model:
+  type: tpp
+  optimizer: Adam
+  lr: 0.01
+  weight_decay: 0.0001
+  loss_fn: multitask
+  metrics: [ll, rmse, r2]
+  observe: r2
+  lower_is_better: False
+  max_epochs: 100
+  early_stop: 20
+  batch_size: 4
+  scale_event: 1
+  scale_time: 100
+  tmax: 20
+  use_likelihood: True
+  step_size: 20
+  intensity_type: thp
+  use_rnn: True
+  temporal_encoding: False
+  input_time_flag: True
+runtime:
+  seed: 1024
+  use_cuda: false
+
