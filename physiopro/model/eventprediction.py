@@ -201,11 +201,12 @@ class TPP(BaseModel):
 
     def calculate_intensity(self, **kwargs):
         if self.hyper_paras["intensity_type"] == 'thp':
-            return self.calculate_intensity_thp(**kwargs)
+            intensity = self.calculate_intensity_thp(**kwargs)
         elif self.hyper_paras["intensity_type"] == 'sahp':
-            return self.calculate_intensity_sahp(**kwargs)
+            intensity = self.calculate_intensity_sahp(**kwargs)
         else:
-            raise ValueError
+            raise NotImplementedError
+        return intensity
 
     def compute_integral_unbiased(self, all_lambda, event_time, non_pad_mask):
         """ Log-likelihood of non-events, using Monte Carlo integration. """
@@ -294,9 +295,10 @@ class TPP(BaseModel):
 
     def temporal_prediction(self, all_lambda, enc_out, event_time, event_type):
         if self.use_linear:
-            return self.temporal_prediction_from_linear(all_lambda, enc_out, event_time, event_type)
+            predictions = self.temporal_prediction_from_linear(all_lambda, enc_out, event_time, event_type)
         else:
-            return self.temporal_prediction_from_integral(all_lambda, enc_out, event_time, event_type)
+            predictions = self.temporal_prediction_from_integral(all_lambda, enc_out, event_time, event_type)
+        return predictions
 
     def calculate_loss(self, all_lambda, enc_out, event_time, event_type):
         loss_fn = LabelSmoothingLoss(0.1, self.hyper_paras['out_size'], ignore_index=-1, use_softmax=self.use_linear)
@@ -329,27 +331,30 @@ class TPP(BaseModel):
         event_ll, non_event_ll = self.temporal_log_likelihood(all_lambda, event_time, event_type)
         return event_ll - non_event_ll
 
-    def get_metric_fn(self, metric):
+    @staticmethod
+    def get_metric_fn(metric):
         if metric == 'll':
-            return mean
+            metric_fn = mean
         elif metric == 'ap':
-            return K.accuracy
+            metric_fn = K.accuracy
         elif metric == 'rmse':
-            return rmse
+            metric_fn = rmse
         elif metric == 'r2':
-            return K.r2_score
+            metric_fn = K.r2_score
         elif metric == 'auc':
-            return K.auc
+            metric_fn = K.auc
         else:
             raise NotImplementedError
+        return metric_fn
 
     def get_loss_fn(self, loss_fn):
         if loss_fn == 'multitask':
-            return self.calculate_loss
+            _loss_fn = self.calculate_loss
         elif loss_fn == 'll':
-            return self.calculate_loglikelihood_loss
+            _loss_fn = self.calculate_loglikelihood_loss
         else:
             raise NotImplementedError
+        return _loss_fn
 
     def _init_optimization(
             self,
