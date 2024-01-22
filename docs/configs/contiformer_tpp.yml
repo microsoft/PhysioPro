@@ -1,6 +1,6 @@
 data:
   type: tpp
-  prefix: /nas/user/cyq/TSFM/Temporal_Point_Process
+  prefix: /nas/user/cyq/TSFM/temporal_point_process
   name: data_neonate
   fold: fold1
   max_len: 100
@@ -22,6 +22,7 @@ network:
   method_ode: rk4
   regularize: False
   approximate_method: bilinear
+  normalize_before: False
   interpolate_ode: cubic
   nlinspace: 1
 model:
@@ -33,7 +34,7 @@ model:
   metrics: [ll, rmse, r2]
   observe: r2
   lower_is_better: False
-  max_epochs: 100
+  max_epochs: 200
   early_stop: 20
   batch_size: 4
   scale_event: 1
