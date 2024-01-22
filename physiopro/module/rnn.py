@@ -1,7 +1,10 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 from torch import nn
 
 
-class RNN_layers(nn.Module):
+class RNNLayers(nn.Module):
     """
     Optional recurrent layers. This is inspired by the fact that adding
     recurrent layers on top of the Transformer helps language modeling.

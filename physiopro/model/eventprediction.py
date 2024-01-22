@@ -20,7 +20,7 @@ from utilsd import use_cuda
 from ..common.utils import AverageMeter, to_torch, GlobalTracker, printt
 from ..metrics.tpp import LabelSmoothingLoss
 from ..metrics.utils import K
-from ..module.rnn import RNN_layers
+from ..module.rnn import RNNLayers
 from .base import MODELS, BaseModel
 
 
@@ -142,7 +142,7 @@ class TPP(BaseModel):
         self.event_emb = nn.Embedding(self.hyper_paras['out_size'] + 1, network.hidden_size, padding_idx=0)
 
         if use_rnn:
-            self.rnn = RNN_layers(network.hidden_size, network.hidden_size)
+            self.rnn = RNNLayers(network.hidden_size, network.hidden_size)
 
         if intensity_type == 'sahp':
             self.gelu = nn.GELU()
@@ -667,7 +667,6 @@ class TPP(BaseModel):
 
         # finish training, test on origin train and test, save model and write logs
         self._load_weight(self.best_params)
-        trainset.restore()
         print("Begin evaluate on original trainset ...")
         with torch.no_grad():
             origin_train_res = self.evaluate(trainset)
@@ -849,10 +848,10 @@ class TPP(BaseModel):
             time_prediction = time_prediction.cumsum(dim=-1) * non_pad_mask.squeeze(-1)
             type_prediction = (type_prediction.argmax(dim=-1) + 1) * non_pad_mask.squeeze(-1)
 
-            preds_time.append(self.pad_sequence(time_prediction.detach().cpu().numpy(), self.max_len))
-            preds_event.append(self.pad_sequence(type_prediction.detach().cpu().numpy(), self.max_len))
-            gt_time.append(self.pad_sequence(event_time.detach().cpu().numpy(), self.max_len))
-            gt_event.append(self.pad_sequence(event_type.detach().cpu().numpy(), self.max_len))
+            preds_time.append(self.pad_sequence(time_prediction.detach().cpu().numpy(), dataset.max_len))
+            preds_event.append(self.pad_sequence(type_prediction.detach().cpu().numpy(), dataset.max_len))
+            gt_time.append(self.pad_sequence(event_time.detach().cpu().numpy(), dataset.max_len))
+            gt_event.append(self.pad_sequence(event_type.detach().cpu().numpy(), dataset.max_len))
 
         pred_time = np.concatenate(preds_time, axis=0)
         pred_event = np.concatenate(preds_event, axis=0)
