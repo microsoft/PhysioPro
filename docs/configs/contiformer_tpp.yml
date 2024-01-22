@@ -48,6 +48,6 @@ model:
   input_time_flag: True
 runtime:
   seed: 1024
-  use_cuda: false
+  use_cuda: true
   output_dir: outputs/Temporal_Point_Process/neonate
 
