@@ -44,3 +44,20 @@ tensorboard --logdir outputs/
 ```
 
 The results will be saved to `outputs/Multivariate_ts/Heartbeat` directory.
+
+## Run temporal point process
+
+1. Download the dataset
+
+Please download the dataset from Google Drive [Link](), and put it under `data` fold.
+
+2. Run temporal point process task with `ContiFormer`
+
+```bash
+# create the output directory
+mkdir -p outputs/Temporal_Point_Process/neonate
+# run the train task
+python -m physiopro.entry.train docs/configs/contiformer_tpp.yml
+# tensorboard
+tensorboard --logdir outputs/
+```

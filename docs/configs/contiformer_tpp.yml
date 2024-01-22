@@ -1,7 +1,7 @@
 data:
   type: tpp
   prefix: /nas/user/cyq/TSFM/Temporal_Point_Process
-  name: data_neonate_single
+  name: data_neonate
   folder: folder2
   max_len: 100
 network:
@@ -12,8 +12,8 @@ network:
   d_k: 8
   d_v: 8
   d_inner: 128
-  actfn_ode: sigmoid
-  layer_type_ode: concatnorm
+  actfn_ode: tanh
+  layer_type_ode: concat
   zero_init_ode: False
   linear_type_ode: before
   atol_ode: 1e-1
@@ -48,4 +48,5 @@ model:
 runtime:
   seed: 1024
   use_cuda: false
+  output_dir: outputs/Temporal_Point_Process/neonate
 
