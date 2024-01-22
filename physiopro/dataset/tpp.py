@@ -18,14 +18,14 @@ class EventDataset(BaseDataset):
         self,
         prefix: str = "data/temporal_point_process",
         name: str = "Neonate",
-        folder: str = "folder1",
+        fold: str = "folder1",
         dataset: Optional[str] = "train",
         preprocessor: Optional[Any] = None,
         max_len: Optional[int] = 500,
         clip_max: Optional[int] = -1,
     ):
         super(EventDataset, self).__init__(preprocessor=preprocessor)
-        self.data_folder = os.path.join(prefix, name, folder)
+        self.data_folder = os.path.join(prefix, name, fold)
         self.dataset = dataset
         self.max_len = max_len
         assert dataset in ['train', 'test'], 'Invalid dataset'
