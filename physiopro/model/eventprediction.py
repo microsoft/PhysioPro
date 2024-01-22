@@ -3,7 +3,6 @@
 
 from typing import List, Tuple, Optional, Union
 from pathlib import Path
-import math
 import copy
 import json
 import time
@@ -21,6 +20,7 @@ from ..common.utils import AverageMeter, to_torch, GlobalTracker, printt
 from ..metrics.tpp import LabelSmoothingLoss
 from ..metrics.utils import K
 from ..module.rnn import RNNLayers
+from .utils import get_non_pad_mask, type_loss, compute_event, pad_sequence, softplus, time_loss, mean, rmse
 from .base import MODELS, BaseModel
 
 
@@ -170,70 +170,6 @@ class TPP(BaseModel):
         else:
             raise NotImplementedError
 
-    @staticmethod
-    def softplus(x, beta):
-        # hard thresholding at 20
-        temp = beta * x
-        temp[temp > 20] = 20
-        return 1.0 / beta * torch.log(1 + torch.exp(temp))
-
-    @staticmethod
-    def get_non_pad_mask(seq):
-        """ Get the non-padding positions. """
-
-        assert seq.dim() == 2
-        return seq.ne(0).type(torch.float).unsqueeze(-1)
-
-    @staticmethod
-    def pad_sequence(seq, max_len):
-        seq_len = min(seq.shape[1], max_len)
-        res = np.zeros((seq.shape[0], max_len), dtype=np.float32)
-        res[:, :seq_len] = seq[:, :seq_len]
-        return res
-
-    @staticmethod
-    def compute_event(event, non_pad_mask):
-        """ Log-likelihood of events. """
-
-        # add 1e-9 in case some events have 0 likelihood
-        event += math.pow(10, -9)
-        event.masked_fill_(~non_pad_mask.bool(), 1.0)
-
-        result = torch.log(event)
-        return result
-
-    @staticmethod
-    def type_loss(prediction, types, loss_func):
-        """ Event prediction loss, label smoothing. """
-
-        # convert [1,2,3] based types to [0,1,2]; also convert padding events to -1
-        truth = types[:, 1:] - 1
-        prediction = prediction[:, :-1, :]
-
-        pred_type = torch.max(prediction, dim=-1)[1]
-        correct_num = torch.sum(pred_type == truth)
-
-        # compute cross entropy loss
-        loss = loss_func(prediction, truth)
-
-        loss = torch.sum(loss)
-        return loss, correct_num
-
-    @staticmethod
-    def time_loss(prediction, event_time):
-        """ Time prediction loss. """
-
-        prediction.squeeze_(-1)
-
-        true = event_time[:, 1:] - event_time[:, :-1]
-        true = torch.where(true >= 0., true, torch.zeros(true.shape).to(prediction.device))
-        prediction = prediction[:, :-1]
-
-        # event time gap prediction
-        diff = prediction - true
-        se = torch.sum(diff * diff)
-        return se
-
     def calculate_intensity_thp(self, **kwargs):
         """
         Input: hidden: batch*seq_len*d_model
@@ -244,7 +180,7 @@ class TPP(BaseModel):
         timestamp = torch.linspace(start=0, end=self.tmax, steps=self.tmax * self.step_size).to(enc_out.device)
 
         hidden = self.linear(enc_out)  # batch*seq*type
-        return self.softplus(hidden.unsqueeze(-2) + self.alpha * timestamp.unsqueeze(-1), self.beta)
+        return softplus(hidden.unsqueeze(-2) + self.alpha * timestamp.unsqueeze(-1), self.beta)
 
     @staticmethod
     def state_decay(converge_point, start_point, omega, delta_t):
@@ -292,7 +228,7 @@ class TPP(BaseModel):
         return unbiased_integral
 
     def temporal_log_likelihood(self, all_lambda, event_time, event_type):
-        non_pad_mask = self.get_non_pad_mask(event_type).squeeze(2)
+        non_pad_mask = get_non_pad_mask(event_type).squeeze(2)
 
         type_mask = torch.zeros([*event_type.size(), self.hyper_paras["out_size"]], device=event_type.device)
         for i in range(self.hyper_paras["out_size"]):
@@ -313,7 +249,7 @@ class TPP(BaseModel):
         type_lambda = torch.sum(event_lambda * type_mask[:, 1:, :], dim=2)
 
         # event log-likelihood
-        event_ll = self.compute_event(type_lambda, non_pad_mask[:, 1:])
+        event_ll = compute_event(type_lambda, non_pad_mask[:, 1:])
         event_ll = torch.sum(event_ll, dim=-1)
 
         # non-event log-likelihood, either numerical integration or MC integration
@@ -323,14 +259,14 @@ class TPP(BaseModel):
         return event_ll, non_event_ll
 
     def temporal_prediction_from_linear(self, all_lambda, enc_out, event_time, event_type):
-        non_pad_mask = self.get_non_pad_mask(event_type)
+        non_pad_mask = get_non_pad_mask(event_type)
         time_prediction = self.time_predictor(enc_out, non_pad_mask)
         type_prediction = self.type_predictor(enc_out, non_pad_mask)
         return type_prediction, time_prediction
 
     def temporal_prediction_from_integral(self, all_lambda, enc_out, event_time, event_type):
         """ Prediction time using equation in the paper"""
-        non_pad_mask = self.get_non_pad_mask(event_type).squeeze(2)
+        non_pad_mask = get_non_pad_mask(event_type).squeeze(2)
 
         timestep = 1.0 / self.step_size
         temp_time = torch.linspace(start=0, end=self.tmax, steps=self.tmax * self.step_size).to(all_lambda.device)
@@ -370,10 +306,10 @@ class TPP(BaseModel):
         prediction = self.temporal_prediction(all_lambda, enc_out, event_time, event_type)
 
         # type prediction
-        pred_loss, pred_num_event = self.type_loss(prediction[0], event_type, loss_fn)
+        pred_loss, _ = type_loss(prediction[0], event_type, loss_fn)
 
         # time prediction
-        reg_loss = self.time_loss(prediction[1], event_time)
+        reg_loss = time_loss(prediction[1], event_time)
 
         loss = event_loss + self.scale_event * pred_loss + reg_loss / self.scale_time
 
@@ -393,23 +329,13 @@ class TPP(BaseModel):
         event_ll, non_event_ll = self.temporal_log_likelihood(all_lambda, event_time, event_type)
         return event_ll - non_event_ll
 
-    def mean(self, y, pred):
-        if y is None:
-            return K.seq_mean(pred)
-        else:
-            return K.seq_mean(pred - y)
-
-    def rmse(self, y, pred):
-        loss = (y - pred) ** 2
-        return np.sqrt(K.seq_mean(loss, keepdims=False))
-
     def get_metric_fn(self, metric):
         if metric == 'll':
-            return self.mean
+            return mean
         elif metric == 'ap':
             return K.accuracy
         elif metric == 'rmse':
-            return self.rmse
+            return rmse
         elif metric == 'r2':
             return K.r2_score
         elif metric == 'auc':
@@ -472,7 +398,7 @@ class TPP(BaseModel):
     def forward(self, inputs):
         # previous encoding
         event_type, event_time = inputs
-        non_pad_mask = self.get_non_pad_mask(event_type)
+        non_pad_mask = get_non_pad_mask(event_type)
         enc_output = self.event_emb(event_type)
 
         if self.temporal_encoding:
@@ -486,12 +412,10 @@ class TPP(BaseModel):
         all_lambda = self.calculate_intensity(hidden=enc_out, t0=event_time, t1=event_time + self.tmax)
         return all_lambda, enc_out
 
-    def _init_scheduler(self, use_schedule=False):
+    def _init_scheduler(self, loader_length=False):
         """Setup learning rate scheduler"""
-        if use_schedule:
+        if loader_length:
             self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, 10, gamma=0.5)
-        else:
-            self.scheduler = None
 
     def fit(
         self,
@@ -575,7 +499,7 @@ class TPP(BaseModel):
                 train_reg_loss.update(reg_loss, event_type.size(0))
 
                 for metric in self.metrics:
-                    mask = self.get_non_pad_mask(event_type).squeeze(-1)
+                    mask = get_non_pad_mask(event_type).squeeze(-1)
                     seq_len = mask.sum(dim=-1).int().cpu() - 1
                     if metric == 'll':
                         pred = self.loglikelihood(all_lambda=all_lambda, event_time=event_time,
@@ -612,7 +536,10 @@ class TPP(BaseModel):
             pred_loss = train_pred_loss.performance()  # pred_loss
 
             start_time = time.time()
-            [train_global_tracker[metric].concat() for metric in self.metrics]
+
+            for metric in self.metrics:
+                train_global_tracker[metric].concat()
+
             metric_res = {
                 metric: train_global_tracker[metric].performance()[metric] for metric in self.metrics
             }
@@ -757,7 +684,7 @@ class TPP(BaseModel):
                 eval_reg_loss.update(reg_loss, event_type.size(0))
 
                 for metric in self.metrics:
-                    mask = self.get_non_pad_mask(event_type).squeeze(-1)
+                    mask = get_non_pad_mask(event_type).squeeze(-1)
                     seq_len = mask.sum(dim=-1).int().cpu() - 1
                     if metric == 'll':
                         pred = self.loglikelihood(all_lambda=all_lambda, event_time=event_time,
@@ -787,7 +714,10 @@ class TPP(BaseModel):
         pred_loss = eval_pred_loss.performance()  # pred_loss
 
         start_time = time.time()
-        [eval_global_tracker[metric].concat() for metric in self.metrics]
+
+        for metric in self.metrics:
+            eval_global_tracker[metric].concat()
+
         metric_res = {
             metric: eval_global_tracker[metric].performance()[metric] for metric in self.metrics
         }
@@ -843,15 +773,15 @@ class TPP(BaseModel):
             # self.network.visualize((event_type, event_time))
             type_prediction, time_prediction = self.temporal_prediction(all_lambda, enc_out, event_time, event_type)
 
-            non_pad_mask = self.get_non_pad_mask(event_type)
+            non_pad_mask = get_non_pad_mask(event_type)
             time_prediction = torch.cat((event_time[:, :1], time_prediction.squeeze(-1)), dim=-1)[:, :-1]
             time_prediction = time_prediction.cumsum(dim=-1) * non_pad_mask.squeeze(-1)
             type_prediction = (type_prediction.argmax(dim=-1) + 1) * non_pad_mask.squeeze(-1)
 
-            preds_time.append(self.pad_sequence(time_prediction.detach().cpu().numpy(), dataset.max_len))
-            preds_event.append(self.pad_sequence(type_prediction.detach().cpu().numpy(), dataset.max_len))
-            gt_time.append(self.pad_sequence(event_time.detach().cpu().numpy(), dataset.max_len))
-            gt_event.append(self.pad_sequence(event_type.detach().cpu().numpy(), dataset.max_len))
+            preds_time.append(pad_sequence(time_prediction.detach().cpu().numpy(), dataset.max_len))
+            preds_event.append(pad_sequence(type_prediction.detach().cpu().numpy(), dataset.max_len))
+            gt_time.append(pad_sequence(event_time.detach().cpu().numpy(), dataset.max_len))
+            gt_event.append(pad_sequence(event_type.detach().cpu().numpy(), dataset.max_len))
 
         pred_time = np.concatenate(preds_time, axis=0)
         pred_event = np.concatenate(preds_event, axis=0)

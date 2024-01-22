@@ -1,11 +1,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import numpy as np
 from typing import Optional, Any
 import os
-import torch
 import pickle
+import numpy as np
+import torch
 from .base import BaseDataset, DATASETS
 
 
@@ -24,13 +24,15 @@ class EventDataset(BaseDataset):
         max_len: Optional[int] = 500,
         clip_max: Optional[int] = -1,
     ):
-        super(EventDataset, self).__init__(preprocessor=preprocessor)
+        super().__init__(preprocessor=preprocessor)
         self.data_folder = os.path.join(prefix, name, fold)
         self.dataset = dataset
         self.max_len = max_len
         assert dataset in ['train', 'test'], 'Invalid dataset'
 
-        data = pickle.load(open(os.path.join(self.data_folder, self.dataset + '.pkl'), 'rb'), encoding='latin1')
+        with open(os.path.join(self.data_folder, self.dataset + '.pkl'), 'rb') as f:
+            data = pickle.load(f, encoding='latin1')
+
         self.num_types = data['dim_process']
         # filter data with length == 1
         data_idx = [i for i in range(len(data[dataset])) if len(data[dataset][i]) > 1]
@@ -69,7 +71,8 @@ class EventDataset(BaseDataset):
         """ Each returned element is a list, which represents an event stream """
         return self.time[idx], self.time_gap[idx], self.event_type[idx]
 
-    def pad_time(self, insts):
+    @staticmethod
+    def pad_time(insts):
         """ Pad the instance to the max seq length in batch. """
         max_len = max(len(inst) for inst in insts)
         batch_seq = np.array([
@@ -78,7 +81,8 @@ class EventDataset(BaseDataset):
 
         return torch.tensor(batch_seq, dtype=torch.float32)
 
-    def pad_type(self, insts):
+    @staticmethod
+    def pad_type(insts):
         """ Pad the instance to the max seq length in batch. """
         max_len = max(len(inst) for inst in insts)
         batch_seq = np.array([

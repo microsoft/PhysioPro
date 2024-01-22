@@ -14,7 +14,7 @@ class LabelSmoothingLoss(torch.nn.Module):
 
     def __init__(self, label_smoothing, tgt_vocab_size, ignore_index=-100, use_softmax=False):
         assert 0.0 < label_smoothing <= 1.0
-        super(LabelSmoothingLoss, self).__init__()
+        super().__init__()
 
         self.eps = label_smoothing
         self.num_classes = tgt_vocab_size
