@@ -1,7 +1,7 @@
 data:
   type: tpp
   prefix: ./data/temporal_point_process
-  name: data_synthetic
+  name: data_neonate
   fold: fold1
   max_len: 100
 network:
@@ -12,8 +12,8 @@ network:
   d_k: 8
   d_v: 8
   d_inner: 128
-  actfn_ode: sigmoid
-  layer_type_ode: concatnorm
+  actfn_ode: tanh
+  layer_type_ode: concat
   zero_init_ode: False
   linear_type_ode: before
   atol_ode: 1e-1
@@ -31,7 +31,7 @@ model:
   lr: 0.01
   weight_decay: 0.0001
   loss_fn: multitask
-  metrics: [ll, ap, rmse]
+  metrics: [ll, rmse]
   observe: ll
   lower_is_better: False
   max_epochs: 200
@@ -39,9 +39,9 @@ model:
   batch_size: 4
   scale_event: 1
   scale_time: 100
-  tmax: 5
+  tmax: 20
   use_likelihood: True
-  step_size: 100
+  step_size: 20
   intensity_type: thp
   use_rnn: True
   temporal_encoding: False
@@ -49,5 +49,5 @@ model:
 runtime:
   seed: 1024
   use_cuda: true
-  output_dir: outputs/Temporal_Point_Process/synthetic
+  output_dir: outputs/Temporal_Point_Process/neonate
 
