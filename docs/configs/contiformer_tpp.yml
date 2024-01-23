@@ -1,6 +1,6 @@
 data:
   type: tpp
-  prefix: /nas/user/cyq/TSFM/temporal_point_process
+  prefix: ./data/temporal_point_process
   name: data_neonate
   fold: fold1
   max_len: 100
