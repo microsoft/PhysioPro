@@ -1,4 +1,4 @@
-# Contiformer
+# ContiFormer
 
 This document gives an example on how to use the PhysioPro framework for [ContiFormer: Continuous-Time Transformer for Irregular Time Series Modeling](https://seqml.github.io/contiformer/).
 
@@ -43,8 +43,21 @@ python -m physiopro.entry.train docs/configs/contiformer_mask_classification.yml
 tensorboard --logdir outputs/
 ```
 
-<<<<<<< HEAD
-The results will be saved to `outputs/Multivariate2018_ts/Heartbeat` directory.
-=======
 The results will be saved to `outputs/Multivariate_ts/Heartbeat` directory.
->>>>>>> 5428ca0... [bug fix] fix contiformer issues and add doc (#9)
+
+## Run temporal point process
+
+1. Download the dataset
+
+Please download the dataset from Google Drive [Link](https://drive.google.com/drive/folders/1SvHEiNuMH2lauQT5uYvNrdFoHi8ucSzx?usp=sharing), and put it under `data` fold.
+
+2. Run temporal point process task with `ContiFormer`
+
+```bash
+# create the output directory
+mkdir -p outputs/Temporal_Point_Process/neonate
+# run the train task
+python -m physiopro.entry.train docs/configs/contiformer_tpp.yml
+# tensorboard
+tensorboard --logdir outputs/
+```

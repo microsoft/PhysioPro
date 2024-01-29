@@ -222,6 +222,7 @@ class Encoder(nn.Module):
             enc_output, _ = enc_layer(enc_output, t, mask=mask)
         return enc_output
 
+
 class EncoderLayer(nn.Module):
     """Compose with two layers"""
 
@@ -301,7 +302,12 @@ class ContiFormer(nn.Module):
         )
 
         self.d_model = d_model
-        self.linear = nn.Linear(input_size, d_model)
+
+        if input_size is not None:   # None for hidden state inputs
+            self.linear = nn.Linear(input_size, d_model)
+        else:
+            self.linear = None
+
         self.max_length = max_length
         self.__output_size = d_model
         self.__hidden_size = d_model
@@ -311,7 +317,9 @@ class ContiFormer(nn.Module):
             t = torch.linspace(0, 1, x.shape[1]).to(x.device)
             t = t.unsqueeze(0).repeat(x.shape[0], 1)
 
-        x = self.linear(x)
+        if self.linear is not None:
+            x = self.linear(x)
+
         enc_output = self.encoder(x, t, mask)
         return enc_output, enc_output[:, -1, :]
 

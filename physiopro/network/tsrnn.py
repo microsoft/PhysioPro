@@ -50,8 +50,11 @@ class TSRNN(nn.Module):
         """
         super().__init__()
         Cell = get_cell(cell_type)
+        if input_size is not None:
+            self.encoder = nn.Sequential(nn.Linear(input_size, hidden_size), nn.ReLU())
+        else:
+            self.encoder = None
 
-        self.encoder = nn.Sequential(nn.Linear(input_size, hidden_size), nn.ReLU())
         self.temporal_encoder = Cell(
             input_size=hidden_size,
             hidden_size=hidden_size,
@@ -85,7 +88,10 @@ class TSRNN(nn.Module):
             inputs = self.emb(inputs)
 
         # non-regressive encoder
-        z = self.encoder(inputs)
+        if self.encoder is not None:
+            z = self.encoder(inputs)
+        else:
+            z = inputs
 
         # regressive encoder
         rnn_outs, _ = self.temporal_encoder(z)
