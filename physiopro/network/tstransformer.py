@@ -64,11 +64,14 @@ class TSTransformer(nn.Module):
             ValueError: If `emb_type` is not supported.
         """
         super().__init__(self)
-        self.encoder = nn.Sequential(nn.Linear(input_size, hidden_size), nn.ReLU())
+        if input_size is not None:  # None for hidden state inputs
+            self.encoder = nn.Sequential(nn.Linear(input_size, hidden_size), nn.ReLU())
+        else:
+            self.encoder = None
         encoder_layers = BatchFirstTransformerEncoderLayer(hidden_size, num_heads, dropout=dropout, batch_first=True)
         self.temporal_encoder = TransformerEncoder(encoder_layers, num_layers)
 
-        if emb_dim != 0:
+        if emb_dim != 0 and input_size is not None:
             self.emb = PositionEmbedding(emb_type, input_size, max_length, dropout=dropout)
 
         self.is_bidir = is_bidir
@@ -86,7 +89,10 @@ class TSTransformer(nn.Module):
             inputs = self.emb(inputs)
 
         # non-regressive encoder
-        z = self.encoder(inputs)
+        if self.encoder is not None:
+            z = self.encoder(inputs)
+        else:
+            z = inputs
 
         # mask generation
         mask = generate_square_subsequent_mask(z.size()[1], 0)
