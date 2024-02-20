@@ -1,10 +1,10 @@
 data:
   type: SEED
   window_size: 1
-  subject_index: 7
-  # set up pre-trainde model path
+  # the subject index of the dataset
+  subject_index: 7 
   # the upper directory of the dataset
-  # prefix: /dataset
+  prefix: /home/yansenwang/data/
 
 network:
   type: MMM_Encoder
@@ -13,8 +13,9 @@ network:
   encoder_dim: 16
   channel_num: 79
   in_chans: 5
+  pe_type: 2d
 
-decoder_network:
+decoder_network: # used only during pre-training. Can be omitted if only finetuning.
   type: MMM_Encoder
   depth: 6
   encoder_dim: 16
@@ -24,7 +25,7 @@ decoder_network:
 model:
   type: MMM_Finetune
   task: multiclassification
-  # set up pre-trainde model path
+  # set up pre-trained model path, leave blank for training from scratch
   # E.g.
   # model_path: /model/mmm_pretrained.pkl
   optimizer: Adam
@@ -43,4 +44,4 @@ model:
 runtime:
   seed: 51
   use_cuda: true
-  output_dir: ./dev/s7
+  output_dir: outputs/MMM_SEED/7/

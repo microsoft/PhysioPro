@@ -14,12 +14,12 @@ class SEED(Dataset):
     def __init__(
         self,
         prefix: str = "/dataset",
-        name: str = "DE",
+        name: str = "DE", # folder name where DE features are stored
         window_size: int = 1,
         tempo: bool = False,
         subject_index: Optional[int] = -1,
         dataset_name: Optional[str] = None,
-        normalize: str = 'gaussian',
+        normalize: str = 'gaussian', # minmax or gaussian
         region:int = 17,
     ):
         super().__init__()
@@ -46,10 +46,11 @@ class SEED(Dataset):
         )
         # num_subject , num_channel, sample, num_freq -> num_subject, sample, num_channel, num_freq
         self.data = self.data.transpose([0, 2, 1, 3])
-
         self.label = np.array(
             [sio.loadmat(d_labels_path)["de_labels"] for _ in candidate_list]
         )
+
+        self.label = self.label.flatten()
 
         self._normalize(normalize)
         
@@ -61,9 +62,9 @@ class SEED(Dataset):
             self.data=self.data.transpose([0,2,1,3])
         else:
             self.data = self.data.reshape(self.data.shape[0] * self.data.shape[1], self.data.shape[2] , self.data.shape[3])
-            self.label = self.label.reshape(self.label.shape[0] * self.label.shape[1])
-
+            
         # reorder the channel by functional area
+        # the order is recorded in the original SEED dataset. You can find it in "SEED/RAW/channel_order.csv"
         idx = [0,1,2,3,4,5,6,7,8,9,
                 10,17,18,19,11,12,13,
                 14,15,16,20,21,22,23,
@@ -145,17 +146,18 @@ class SEED(Dataset):
 
         if dataset_name == "train":
             self.data = self.data[:,:train_size]
-            self.label = self.label[:,:train_size]
+            self.label = self.label[:train_size]
             self.length = train_size
         elif dataset_name == "valid":
             self.data = self.data[:,train_size:]
-            self.label = self.label[:,train_size:]
+            self.label = self.label[train_size:]
             self.length = test_size
         else:
             raise ValueError("dataset_name should be train or valid")
 
     def get_coordination(self):
-        if self.region == 17:
+        # we support the best-performed region setting. If you want to use other region setting, you can modify the code here
+        if self.region == 17: 
             func_areas = [[0,1,2,3,4],[5,6,7],[8,9,10,11,12,13],[14,15,16],[17,18,19],[20,21,22],[23,24,25],
             [26,27,28],[29,30,31],[32,33,34],[35,36,37,38,39,40],[41,42,43],[44,45,46],[47,48,49],
             [50,51,52],[53,54,55,56,57,58],[59,60,61]]
@@ -181,7 +183,7 @@ class SEED(Dataset):
             -3, 27, 56, 56, 27, -3, -3, 31, 61, 81, 88, 81, 61, 31, -3, -3, 27,
             56, 74, 81, 74, 56, 61, 56, 56, 27, -3, -3, 23, 44, 44, 23, -3, -3, 24,
             -3, 24, 31, 24, -3, -3, -3, 24, -3, -3
-        ]])
+        ]]) # coordinations of the 62 channels (x, y, z)
         for i in range(coordination.shape[0]):
             arr = coordination[i]
             rank = rankdata(arr, method="dense") - 1

@@ -6,6 +6,7 @@ from utilsd.config import PythonConfig, RegistryConfig, RuntimeConfig, configcla
 from ..dataset import DATASETS
 from ..model import MODELS
 from ..network import NETWORKS
+
 @configclass
 class Config(PythonConfig):
     data: RegistryConfig[DATASETS]
@@ -52,7 +53,6 @@ def run(config):
     pe_coordination = trainset_finetune.coordination
     network = config.network.build(
         attn_mask = trainset_finetune.attn_mask,
-        pe_type = '2d',
         pe_coordination = pe_coordination,
     )
     if config.model.model_path is not None:
