@@ -4,7 +4,7 @@ data:
   # the subject index of the dataset
   subject_index: 7 
   # the upper directory of the dataset
-  prefix: /home/yansenwang/data/
+  prefix: ./data/
 
 network:
   type: MMM_Encoder

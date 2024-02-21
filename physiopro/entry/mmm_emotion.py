@@ -1,4 +1,3 @@
-import os
 import torch
 
 from utilsd import get_output_dir, get_checkpoint_dir, setup_experiment
@@ -37,8 +36,8 @@ def load_model(path):
     #         del params['network.'+name]
     #     else:
     #         del params[name]
-    
-    #remove pos_embed and attn_mask
+
+    # remove pos_embed and attn_mask
     if 'pos_embed' in params:
         del params['pos_embed']
     if 'attn_mask' in params:

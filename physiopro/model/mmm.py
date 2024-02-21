@@ -4,11 +4,11 @@ import time
 import json
 import datetime
 from typing import List, Optional
+from pathlib import Path
 import torch
 from torch import nn, optim
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
-from pathlib import Path
 from utilsd import use_cuda
 from utilsd.earlystop import EarlyStop, EarlyStopStatus
 from ..metrics import get_loss_fn, get_metric_fn
@@ -82,7 +82,7 @@ class MMM_Finetune(BaseModel):
         self.network = network
         self.aggregate = aggregate
 
-        # Setup Suernodes 
+        # Setup Suernodes
         self.supernodes = nn.Parameter(torch.zeros(1,self.region,network.in_chans))
         torch.nn.init.normal_(self.supernodes)
 
@@ -148,11 +148,16 @@ class MMM_Finetune(BaseModel):
             ],
         )
 
-    def forward(self, x, mask_type='random'):
-        N, C, F = x.shape
-        func_areas = [[0,1,2,3,4],[5,6,7],[8,9,10,11,12,13],[14,15,16],[17,18,19],[20,21,22],[23,24,25],[26,27,28],[29,30,31],[32,33,34],[35,36,37,38,39,40],[41,42,43],[44,45,46],[47,48,49],[50,51,52],[53,54,55,56,57,58],[59,60,61]]
+    def forward(self, inputs, mask_type='random'):
+        N, C, F = inputs.shape
+        func_areas = [
+            [0,1,2,3,4],[5,6,7],[8,9,10,11,12,13],[14,15,16],
+            [17,18,19],[20,21,22],[23,24,25],[26,27,28],[29,30,31],
+            [32,33,34],[35,36,37,38,39,40],[41,42,43],[44,45,46],
+            [47,48,49],[50,51,52],[53,54,55,56,57,58],[59,60,61]
+        ]
         if mask_type == 'block':
-            mask, ids = random_masking(N, len(func_areas), self.mask_ratio)
+            mask, _ = random_masking(N, len(func_areas), self.mask_ratio)
             mask_res=[]
             for mask_for_singlebs in mask:
                 res=[]
@@ -162,15 +167,15 @@ class MMM_Finetune(BaseModel):
             mask=torch.tensor(mask_res)
             mask = mask.unsqueeze(-1).repeat(1, 1, F)
         elif mask_type == "random":
-            mask, ids = random_masking(N, C, self.mask_ratio)
+            mask, _ = random_masking(N, C, self.mask_ratio)
             mask = mask.unsqueeze(-1).repeat(1, 1, F)
         mask = mask.to(device="cuda")
         mask_inverse = 1 - mask
-        
-        x = torch.mul(mask_inverse, x)
-        supernodes=torch.repeat_interleave(self.supernodes,x.shape[0],0)
-        x=torch.cat([x,supernodes],1)
-        out = self.network(x,region=self.region)
+
+        inputs = torch.mul(mask_inverse, inputs)
+        supernodes=torch.repeat_interleave(self.supernodes,inputs.shape[0],0)
+        inputs=torch.cat([inputs,supernodes],1)
+        out = self.network(inputs,region=self.region)
         bs = out.shape[0]
         out = out.reshape(bs, -1)
         out = self.fc_norm1(out)
@@ -186,7 +191,6 @@ class MMM_Finetune(BaseModel):
         validset: Optional[Dataset] = None,
         testset: Optional[Dataset] = None,
     ) -> nn.Module:
-
         loader = DataLoader(
             trainset,
             batch_size=self.batch_size,
@@ -194,7 +198,7 @@ class MMM_Finetune(BaseModel):
             pin_memory=True,
             num_workers=8,
         )
-        self.best_acc = 0 
+        self.best_acc = 0
         self.loss_fn = nn.CrossEntropyLoss()
         self.best_params = copy.deepcopy(self.state_dict())
         self.best_network_params = copy.deepcopy(self.network.state_dict())
@@ -318,7 +322,7 @@ class MMM_Finetune(BaseModel):
         start_time = time.time()
         validset.load()
         with torch.no_grad():
-            for idx, (data, label) in enumerate(loader):
+            for _, (data, label) in enumerate(loader):
                 if use_cuda():
                     data, label = to_torch(data, device="cuda"), to_torch(
                         label, device="cuda"
@@ -349,7 +353,7 @@ class MMM_Finetune(BaseModel):
         if os.path.exists(self.checkpoint_dir / "down_buffer.pth"):
             try:
                 os.remove(self.checkpoint_dir / "down_buffer.pth")
-            except:
+            except Exception:
                 pass
         torch.save(
             {
@@ -383,9 +387,9 @@ class MMM_Finetune(BaseModel):
             self.best_params = checkpoint["best_params"]
             self.best_network_params = checkpoint["best_network_params"]
             return checkpoint["epoch"], checkpoint["best_res"]
-        else:
-            print(f"No checkpoint found in {self.checkpoint_dir}", __name__)
-            return 0, {}
+
+        print(f"No checkpoint found in {self.checkpoint_dir}", __name__)
+        return 0, {}
 
     def _unload(self, cur_epoch, best_res):
         torch.save(

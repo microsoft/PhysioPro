@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     labels = []
     label_mat = sio.loadmat(os.path.join(data_path, 'label.mat'))
-    label = label_mat['label'].flatten() 
+    label = label_mat['label'].flatten()
 
     os.makedirs(save_path, exist_ok=True)
 

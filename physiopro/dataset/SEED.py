@@ -1,4 +1,3 @@
-from typing import List
 from typing import Optional
 
 import torch
@@ -35,7 +34,7 @@ class SEED(Dataset):
 
         # if subject_index == -1, we use all the data, otherwise, we use the data according to the subject_index
         candidate_list = (
-            [subject_index] if subject_index != -1 else [i for i in range(45)]
+            [subject_index] if subject_index != -1 else list(range(45))
         )
 
         self.data = np.array(
@@ -53,16 +52,16 @@ class SEED(Dataset):
         self.label = self.label.flatten()
 
         self._normalize(normalize)
-        
+
         self._split(self.dataset_name)
-        
+
         if tempo:
             self._addtimewindow(window_size)
             # N, T, C, F -> N, C, T, F
             self.data=self.data.transpose([0,2,1,3])
         else:
             self.data = self.data.reshape(self.data.shape[0] * self.data.shape[1], self.data.shape[2] , self.data.shape[3])
-            
+
         # reorder the channel by functional area
         # the order is recorded in the original SEED dataset. You can find it in "SEED/RAW/channel_order.csv"
         idx = [0,1,2,3,4,5,6,7,8,9,
@@ -82,7 +81,7 @@ class SEED(Dataset):
 
     def _normalize(self,method='minmax'):
         # min-max normalization
-        if method == 'minmax': 
+        if method == 'minmax':
             for i in range(self.data.shape[0]):
                 for j in range(5):
                     # 0~2010 is the training set, 2010:: is the valid set
@@ -100,7 +99,7 @@ class SEED(Dataset):
                     self.data[i, :, :, j] = (self.data[i, :, :, j] - mean) / std
 
     def _addtimewindow(self, window):
-        S = self.data.shape[0] 
+        S = self.data.shape[0]
         data_results = []
         label_results = []
         for i in range(S):
@@ -111,7 +110,7 @@ class SEED(Dataset):
             data = np.concatenate([data, data[-(window):, :, :]], 0)
             label = np.concatenate([label, label[-(window):]], 0)
             data_res = np.zeros(shape=(N, window, C, F))
-            label_res = np.zeros(shape=(N))
+            label_res = np.zeros(shape=(N,))
             for j in range(N):
                 # met the corner case
                 if (
@@ -157,7 +156,7 @@ class SEED(Dataset):
 
     def get_coordination(self):
         # we support the best-performed region setting. If you want to use other region setting, you can modify the code here
-        if self.region == 17: 
+        if self.region == 17:
             func_areas = [[0,1,2,3,4],[5,6,7],[8,9,10,11,12,13],[14,15,16],[17,18,19],[20,21,22],[23,24,25],
             [26,27,28],[29,30,31],[32,33,34],[35,36,37,38,39,40],[41,42,43],[44,45,46],[47,48,49],
             [50,51,52],[53,54,55,56,57,58],[59,60,61]]
@@ -203,8 +202,8 @@ class SEED(Dataset):
                 attn_mask[62+i,62+j] = False
 
         # supernodes can attend to their channels
-        for i in range(len(func_areas)):
-            for j in func_areas[i]:
+        for i, func_area in enumerate(func_areas):
+            for j in func_area:
                 attn_mask[62+i,j] = False
                 attn_mask[j,62+i] = False
 
@@ -252,7 +251,7 @@ def area_gather(coordination, areas):
     return res
 
 if __name__ == "__main__":
-    dataset = SEED(dataset_name="train",addtime=False,window_size=1,subject_index=0)
+    dataset = SEED(dataset_name="train",window_size=1,subject_index=0)
     cnt = 0
     dl = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False)
     for data,lebl in dl:

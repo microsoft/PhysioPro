@@ -35,7 +35,7 @@ def get_sph_sincos_pos_embed(embed_dim, sph_coordination, cls_token=False):
     """
 
     sph_coordination = sph_coordination.reshape(2,-1)
-    
+
     sph_the = sph_coordination[0]
     sph_phi = sph_coordination[1]
     # use half of dimensions to encode sph_theta
@@ -195,7 +195,7 @@ class DropPath(nn.Module):
     """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
     """
     def __init__(self, drop_prob=None):
-        super(DropPath, self).__init__()
+        super().__init__()
         self.drop_prob = drop_prob
 
     def forward(self, x):
@@ -232,7 +232,7 @@ class tcnformer_Block(nn.Module):
                             spatial_dim,
                             num_heads=num_heads,
                             batch_first=True,
-                        )              ,          
+                        ),
                         nn.Linear(spatial_dim, spectral_dim),
                         nn.BatchNorm1d(spatial_dim),
                     ]
@@ -258,7 +258,7 @@ class tcnformer_Block(nn.Module):
         result = result + x
         for tcn, attn, spatial_proj, bn in self.tcn_attn_blocks:
             out = x.reshape(N * C, T, D).permute(0, 2, 1)
-            out = self.act(bn(tcn(out)[:, :, :+T])) 
+            out = self.act(bn(tcn(out)[:, :, :+T]))
             # TCN TODO!
             _, F, T = out.shape
             out = out.reshape(N, C, F, T).permute(0, 3, 1, 2)
@@ -284,7 +284,7 @@ class Block(nn.Module):
                             dim,
                             num_heads=num_heads,
                             batch_first=True,
-                        )   
+                        )
         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         self.norm2 = norm_layer(dim)

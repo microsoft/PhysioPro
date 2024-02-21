@@ -1,7 +1,7 @@
 from typing import Optional
 
 import torch
-import torch.nn as nn
+from torch import nn
 import numpy as np
 from .tsrnn import NETWORKS
 
@@ -11,7 +11,7 @@ from .utils import Block,get_3d_sincos_pos_embed,get_1d_sincos_pos_embed_fromlen
 @NETWORKS.register_module()
 class MMM_Encoder(nn.Module):
     def __init__(
-        self, 
+        self,
         in_chans: int = 5,
         channel_num: int = 79,
         encoder_dim: int = 16,
@@ -29,8 +29,8 @@ class MMM_Encoder(nn.Module):
         self.in_chans = in_chans
         self.pe_type = pe_type
         self.pe_coordination = pe_coordination
-        self.attn_mask = nn.parameter.Parameter(attn_mask,requires_grad=False) 
-        self.patch_embed = nn.Linear(in_chans, encoder_dim, bias=True) 
+        self.attn_mask = nn.parameter.Parameter(attn_mask,requires_grad=False)
+        self.patch_embed = nn.Linear(in_chans, encoder_dim, bias=True)
         self.pos_embed = nn.Parameter(torch.zeros(self.channel_num + 1, encoder_dim), requires_grad=True)
 
         norm_layer = nn.LayerNorm
@@ -43,7 +43,7 @@ class MMM_Encoder(nn.Module):
                 norm_layer=norm_layer) for _ in range(depth))
 
         self.norm = norm_layer(encoder_dim)
-        self.fc_norm = norm_layer(encoder_dim) 
+        self.fc_norm = norm_layer(encoder_dim)
         # --------------------------------------------------------------------------
 
         self.initialize_weights()
@@ -94,4 +94,3 @@ class MMM_Encoder(nn.Module):
         if head:
             return x[:,-(region + 1):]
         return x[:,:-1,:]
-
