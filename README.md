@@ -1,5 +1,10 @@
 A deep learning framework for physiological data processing and understanding.
 
+## NEWS
+
+- `Learning Topology-Agnostic EEG Representations with Geometry-Aware Modeling` is now available [here](docs/MMM.md).
+- `ContiFormer: Continuous-Time Transformer for Irregular Time Series Modeling` is now available [here](docs/contiformer.md).
+
 ## Installation
 
 To install from source code:
