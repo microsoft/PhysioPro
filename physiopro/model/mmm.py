@@ -195,8 +195,7 @@ class MMM_Finetune(BaseModel):
         """
         state_dict = torch.load(model_path, map_location="cpu")
         self.load_state_dict(state_dict, strict=strict)
-        
-        
+
     def fit(
         self,
         trainset: Dataset,

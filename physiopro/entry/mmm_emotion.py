@@ -1,5 +1,3 @@
-import torch
-
 from utilsd import get_output_dir, get_checkpoint_dir, setup_experiment
 from utilsd.config import PythonConfig, RegistryConfig, RuntimeConfig, configclass
 from ..dataset import DATASETS
