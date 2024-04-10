@@ -12,14 +12,26 @@ We'll release the pretrained checkpoint soon. But without it, you can still trai
 
 3. Run `scripts/SEED_DE.py` to obtain the compatible format of SEED DE feature. 
 
+4. *Optional: Download the pretrained checkpoint [here](https://seqml.github.io/MMM/) and set the path to the checkpoint in `docs/configs/mmm_emotion.yml`*
+
 ## Finetune with MMM
 ```bash
 # create the output directory
 mkdir -p outputs/MMM_SEED/7/
+
 # run the finetuning task
 python -m physiopro.entry.mmm_emotion docs/configs/mmm_emotion.yml
+# or 
+# python -m physiopro.entry.mmm_emotion docs/configs/mmm_emotion_from_ckpt.yml 
+# if you would like to load the pretrained encoder. 
+
 # tensorboard
 tensorboard --logdir outputs/
 ```
 
 Then it will run finetuning process on the 7th subject. The results will be saved to `outputs/MMM_SEED/7/` directory. You can run the finetuning process similarly on other subjects by changing `data.subject_index` in the configuration.
+
+## Regarding the DE feature
+We are now aware of the possible issue of using DE feature for SEED (See this [issue](https://github.com/microsoft/PhysioPro/issues/16)). In order to keep it consistent with our paper, we provide the checkpoint pretrained on DE features but please use it wisely. 
+
+We're working to figure out the influence to our results, as well as training MMM on the raw EEG signals. We'll keep it updated. 
