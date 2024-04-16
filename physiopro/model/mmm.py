@@ -185,6 +185,17 @@ class MMM_Finetune(BaseModel):
 
         return preds
 
+    def load(self, model_path: str, strict=False):
+        """Load the model parameter from model path
+
+        Args:
+            model_path (str): The location where the model parameters are saved.
+            strict (bool, optional): [description]. Defaults to False. 
+            **This is not the case in the BaseModel class because MMM_finetune only loads the network(encoder) parameters.**
+        """
+        state_dict = torch.load(model_path, map_location="cpu")
+        self.load_state_dict(state_dict, strict=strict)
+
     def fit(
         self,
         trainset: Dataset,

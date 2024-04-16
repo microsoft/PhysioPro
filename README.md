@@ -2,6 +2,7 @@ A deep learning framework for physiological data processing and understanding.
 
 ## NEWS
 
+- [NEW🔥] Pretrained checkpoint for paper `Learning Topology-Agnostic EEG Representations with Geometry-Aware Modeling` is now available [here](https://seqml.github.io/MMM/).
 - `Learning Topology-Agnostic EEG Representations with Geometry-Aware Modeling` is now available [here](docs/MMM.md).
 - `ContiFormer: Continuous-Time Transformer for Irregular Time Series Modeling` is now available [here](docs/contiformer.md).
 
