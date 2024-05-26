@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Optional, Any, Union
+from typing import Optional, Union
 import os
 import pickle
 import numpy as np
