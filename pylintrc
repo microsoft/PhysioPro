@@ -39,3 +39,4 @@ disable =
     not-callable,
     abstract-method,
     protected-access,
+    possibly-used-before-assignment,
