@@ -1,11 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from typing import Optional, Any
+from typing import Optional, Union
 import os
 import pickle
 import numpy as np
 import torch
+from utilsd.config import ClassConfig
+from .preprocessor import Preprocessor
 from .base import BaseDataset, DATASETS
 
 
@@ -20,7 +22,7 @@ class EventDataset(BaseDataset):
         name: str = "Neonate",
         fold: str = "folder1",
         dataset: Optional[str] = "train",
-        preprocessor: Optional[Any] = None,
+        preprocessor: Optional[Union[ClassConfig[Preprocessor], Preprocessor]] = None,
         max_len: Optional[int] = 500,
         clip_max: Optional[int] = -1,
     ):
