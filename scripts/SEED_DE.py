@@ -21,7 +21,7 @@ if __name__ == "__main__":
     for sub in range(15):
         for exp in range(3):
             data = []
-            mat_path = os.path.join(data_path, filenames[sub * 3 + exp])
+            mat_path = filenames[sub * 3 + exp]
             print(mat_path)
             T = sio.loadmat(mat_path)
 
