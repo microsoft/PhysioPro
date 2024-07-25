@@ -66,7 +66,7 @@ def setup():
         ],
         python_requires=">=3.8",
         install_requires=[
-            "torch==2.0.1",
+            "torch==2.2.0",
             "torchvision==0.15.2",
             "torchcde==0.2.5",
             "utilsd==0.0.18.post0",
