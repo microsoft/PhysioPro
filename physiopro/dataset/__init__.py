@@ -7,4 +7,5 @@ from .maskts import MaskTSDataset
 from .df import DfDataset
 from .cinc2020 import CinC2020
 from .SEED import SEED
+from .SEED_IV_v1 import SEED_IV
 from .tpp import EventDataset
