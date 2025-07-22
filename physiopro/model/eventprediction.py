@@ -409,6 +409,7 @@ class TPP(BaseModel):
         if self.temporal_encoding:
             tem_enc = self.temporal_enc(event_time, non_pad_mask)
             enc_output += tem_enc
+            
         try:  # for Contiformer, it requires event_time as input
             enc_out = self.network(enc_output, t=event_time)
         except:
